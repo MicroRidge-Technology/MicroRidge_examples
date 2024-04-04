@@ -16,3 +16,4 @@ add_verilator_library(dc_ram ../rtl/dc_ram.sv)
 
 add_executable(dc_ram_test csrc/dc_ram_test.cpp)
 target_link_libraries(dc_ram_test PUBLIC dc_ram)
+set_property(TARGET dc_ram_test PROPERTY CXX_STANDARD 20)

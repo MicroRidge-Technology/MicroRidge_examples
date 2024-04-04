@@ -8,28 +8,46 @@
 #include "verilated.h"
 #include <verilated_fst_c.h>
 
-#define debug(a) printf("%s:%lld %s = %d\n",__FILE__,__LINE__,#a,(long long)(a))
+#define debug(a) printf("%s:%d %s = %lld\n",__FILE__,__LINE__,#a,(long long)(a))
+
+#define except_assert(test) do{\
+	if( !(test)) {	    \
+	    char str[1000];\
+	    snprintf(str,900,"%s:%d Exception: assertion %s failed!", __FILE__, __LINE__, #test); \
+	    throw std::runtime_error(str); \
+	}				   \
+    }while(0)
+
 class ClockDriver{
 public:
     using duration_t = std::chrono::nanoseconds;
+    enum class edge_e { RISE_EDGE,FALL_EDGE,BOTH_EDGE};
 private:
     duration_t  down_time,up_time;
     duration_t last_update;
      ///< Function to set the value of the clock net
-    std::function<void(uint8_t)> update_fun;
+    struct callback_t {
+	std::function<void(uint8_t)> fun;
+	edge_e edge;
+    };
+    std::vector<callback_t> callback_functions;
     int clk_val;
 public:
     ClockDriver(std::function<void(uint8_t)> fun,duration_t period)
         {
 	    up_time = period/2;
 	    down_time = period -up_time;
-	    update_fun = fun;
+	    callback_functions.push_back({fun,edge_e::BOTH_EDGE});
 	}
+    void add_callback(std::function < void(uint8_t)> fun, edge_e e=edge_e::RISE_EDGE) {
+	callback_functions.push_back({fun,e});
+    }
     duration_t next_update(){
-	if(clk_val)
+	if(clk_val){
 	    return last_update+up_time;
-        else
+	}else{
 	    return last_update+down_time;
+	}
     }
     duration_t get_period(){
         return down_time+up_time;
@@ -37,7 +55,12 @@ public:
 
     void update(duration_t now){
 	clk_val=!clk_val;
-	update_fun(clk_val);
+	edge_e ignore = clk_val ? edge_e::FALL_EDGE : edge_e::RISE_EDGE;
+	for(auto &cb : callback_functions){
+	    if (cb.edge != ignore){
+		cb.fun(clk_val);
+	    }
+	}
         last_update = now;
     }
 };
@@ -91,14 +114,25 @@ protected:
 
 
     }
-    duration_t update(duration_t run_time){
+    duration_t run(duration_t run_time){
 	duration_t ran_time=update();
 	while(ran_time < run_time){
 	    ran_time += update();
 	}
 	return ran_time;
     }
-
+    template<typename pin_t>
+    duration_t run_until_rising_edge(pin_t& pin, int bit=0){
+	bool new_val = !!(pin &(1<<bit));
+	bool last_val=new_val;
+	duration_t ran_time(0);
+	while( !( new_val==1  && last_val==0)){
+	    last_val = new_val;
+	    ran_time+=update();
+	    new_val =!!(pin &(1<<bit));
+	}
+	return ran_time;
+    }
 };
 
 
