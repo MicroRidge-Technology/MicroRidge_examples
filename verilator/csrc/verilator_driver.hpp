@@ -81,19 +81,35 @@ template <typename dut_t> class verilator_driver {
     VerilatedContext* m_context;
     VerilatedFstC*  m_trace;
     duration_t sim_timeout;
+
 protected:
     dut_t*  dut;
+
+
     verilator_driver(int argc,char** argv)
 	{
+	    char* waveform_file=NULL;
+	    for(int a=1;a<argc;a++){
+		char* idx=strstr(argv[a],"+verilator");
+		if (idx==NULL){
+		    //if +verilator not in arg, grab last arg and use it as waveform file
+		    waveform_file = argv[a];
+		}
+	    }
 	    m_context = new VerilatedContext;
-	    m_context->traceEverOn(true);
 	    m_context->commandArgs(argc, argv);
+	    if(waveform_file){
+		m_context->traceEverOn(true);
+	    }
 
 	    dut = new dut_t(m_context);
-	    m_trace = new VerilatedFstC;
-
-	    dut->trace(m_trace,99);
-	    m_trace->open("test.fst");
+	    if(waveform_file){
+		m_trace = new VerilatedFstC;
+		dut->trace(m_trace,99);
+		m_trace->open("test.fst");
+	    }else{
+		m_trace =NULL;
+	    }
 	    sim_timeout=std::chrono::milliseconds(10);
     }
     ~verilator_driver(){
@@ -114,7 +130,9 @@ protected:
         }
 
         dut->eval();
-	m_trace->dump(m_context->time());
+	if(m_trace){
+	    m_trace->dump(m_context->time());
+	}
 	for(auto &cd: m_clocks){
 	    auto &c  = cd.get();
 	    if(c.next_update() == min_update){

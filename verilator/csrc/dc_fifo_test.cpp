@@ -64,13 +64,11 @@ public:
 		}
 	    }
 	}
-        debug(stalls);
+        //debug(stalls);
 	run(1us);
 	while(!dut->rd_empty){
 	    run(1us);
 	}
-        debug(read_data.size());
-	debug(write_data.size());
 	except_assert(read_data.size() == write_data.size());
 
 	for(int i=0;i<read_data.size() ;++i){
