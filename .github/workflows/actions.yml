@@ -15,20 +15,41 @@ env:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  build:
+  build-container:
     # The type of runner that the job will run on
     runs-on: self-hosted
+    permissions:
+      packages: write
+    outputs:
+      CONTAINER_TAG: ${{ steps.set-tag.outputs.tag }}
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v3
 
-      - name: container hash
-        run : echo CONTAINER_HASH=$(md5sum .github/workflows/Dockerfile | cut -c 1-16) >> $GITHUB_ENV
-      - name: create-container
-        run : |          
-          docker build -t ${{env.CONTAINER_HASH}}   -f .github/workflows/Dockerfile .
-
+      - name: container-hash
+        run : |
+          dock_hash=$(md5sum .github/workflows/Dockerfile | cut -c 1-16)
+          lowcase_repo=$(printf ${{github.repository}} | tr A-Z a-z)
+          echo CONTAINER_TAG=ghcr.io/${lowcase_repo}:${dock_hash} | tee -a $GITHUB_ENV
+      - name: set-tag
+        run : echo tag=${{env.CONTAINER_TAG}} >> "$GITHUB_OUTPUT" 
+      - name: build-container
+        run : docker build -t ${{env.CONTAINER_TAG}} -f .github/workflows/Dockerfile .
+      - name: push-container
+        run : docker push ${{env.CONTAINER_TAG}}
+  tests:
+    runs-on: self-hosted
+    needs: build-container
+    container:
+      image: ${{needs.build-container.outputs.CONTAINER_TAG}}    
+    steps:
+      - name: configure builds
+        run:  mkdir build && cd build && cmake -G Ninja ../verilator
+      - name: build
+        run: ninja -C build
+      - name: run tests
+        run: cd build;ctest 
       # Runs a set of commands using the runners shell
-      - name: Run a command to make sure verilator is installed!
-        run: docker run ${{env.DOCKER_ARGS}} ${{env.CONTAINER_HASH}} sh -c 'mkdir build && cd build && cmake -G Ninja ../verilator && ninja && ctest'
+      #- name: Run a command to make sure verilator is installed!
+      
