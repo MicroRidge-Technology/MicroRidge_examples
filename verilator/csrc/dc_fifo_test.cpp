@@ -71,7 +71,7 @@ public:
 	}
 	except_assert(read_data.size() == write_data.size());
 
-	for(int i=0;i<read_data.size() ;++i){
+	for(unsigned i=0;i<read_data.size() ;++i){
 	    if(read_data.at(i) != write_data.at(i)){
 		debug(i);
 		except_assert(read_data[i] == write_data[i]);
