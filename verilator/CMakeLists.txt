@@ -15,6 +15,7 @@ add_verilator_library(dc_ram ../rtl/dc_ram.sv)
 add_verilator_library(dc_fifo ../rtl/dc_fifo.sv)
 
 
+enable_testing()
 function(create_test name )
    cmake_parse_arguments(MRtest ""
     "VERILATOR_LIBRARY"
