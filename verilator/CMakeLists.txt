@@ -27,6 +27,7 @@ function(create_test name )
   target_link_libraries(${name} PUBLIC ${MRtest_VERILATOR_LIBRARY})
   set_property(TARGET ${name} PROPERTY CXX_STANDARD 20)
   target_compile_options(${name} PRIVATE -Wall   -Werror)
+  add_test(NAME ${name} COMMAND $<TARGET_FILE:${name}>)
 endfunction()
 
 create_test(dc_ram_test

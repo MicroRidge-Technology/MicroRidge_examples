@@ -21,19 +21,17 @@ jobs:
     permissions:
       packages: write
     outputs:
-      CONTAINER_TAG: ${{ steps.set-tag.outputs.tag }}
+      CONTAINER_TAG: ${{ steps.container-tag.outputs.tag }}
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - name: container-hash
+      - name: container-tag
         run : |
-          dock_hash=$(md5sum .github/workflows/Dockerfile | cut -c 1-16)
           lowcase_repo=$(printf ${{github.repository}} | tr A-Z a-z)
-          echo CONTAINER_TAG=ghcr.io/${lowcase_repo}:${dock_hash} | tee -a $GITHUB_ENV
-      - name: set-tag
-        run : echo tag=${{env.CONTAINER_TAG}} >> "$GITHUB_OUTPUT" 
+          echo CONTAINER_TAG=ghcr.io/${lowcase_repo}:${{github.ref_name}} | tee -a $GITHUB_ENV
+          echo tag=${CONTAINER_TAG} >> $GITHUB_OUTPUT         
       - name: build-container
         run : docker build -t ${{env.CONTAINER_TAG}} -f .github/workflows/Dockerfile .
       - name: push-container
