@@ -130,9 +130,6 @@ protected:
         }
 
         dut->eval();
-	if(m_trace){
-	    m_trace->dump(m_context->time());
-	}
 	for(auto &cd: m_clocks){
 	    auto &c  = cd.get();
 	    if(c.next_update() == min_update){
@@ -140,6 +137,9 @@ protected:
 	    }
         }
 	m_context->time(min_update.count());
+	if(m_trace){
+	    m_trace->dump(m_context->time());
+	}
 	dut->eval();
         for (auto &cd : m_clocks) {
 	    auto &c  = cd.get();
