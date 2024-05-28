@@ -88,8 +88,9 @@ module dc_fifo
 
 
 endmodule // dc_fifo
-
+//verilator lint_off DECLFILENAME
 module cc_gray #(parameter WIDTH)
+//verilator lint_on DECLFILENAME
   (
    input wire clk_in,
    input wire [WIDTH-1:0] in,
