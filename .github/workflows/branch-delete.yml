@@ -1,0 +1,35 @@
+name: branch-delete
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events but only for the "master" branch
+  delete:
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+jobs:
+  build-container:
+     # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+    steps:
+      - name: container-tag
+        run : |
+          lowcase_repo=$(printf ${{github.repository}} | tr A-Z a-z)
+          echo PACKAGE_NAME=ghcr.io/${lowcase_repo} | tee -a $GITHUB_ENV
+          echo CONTAINER_TAG=${{github.events.ref}} | tee -a $GITHUB_ENV
+          echo tag=${CONTAINER_TAG} >> $GITHUB_OUTPUT
+        - name: Delete untagged images
+          uses: actions/delete-package-versions@v5
+          with:
+            package-name: ${{env.PACKAGE_NAME}}
+            package-type: container
+            token: ${{secrets.GITHUB_TOKEN }}
+            delete-only-untagged-versions: true
+        - name: Delete images tagged as ${{github.events.ref}}
+          uses: actions/delete-package-versions@v5
+          with:
+            package_name: ${{env.PACKAGE_NAME}}
+            package-type: container
+            package-version-ids: ${{env.CONTAINER_TAG}}
+            token: ${{secrets.GITHUB_TOKEN }}
+
+
