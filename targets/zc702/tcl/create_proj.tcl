@@ -1,6 +1,6 @@
 set tclDir [file dirname [info script]]
 
-source -notrace $tclDir/../../common/create_proj.tcl
+source -notrace $tclDir/../../common/vivado_create_proj.tcl
 
 set rtl_files [list]
 set constr_files [list]
