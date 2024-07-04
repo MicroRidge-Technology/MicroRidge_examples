@@ -31,7 +31,9 @@ jobs:
         run : |
           lowcase_repo=$(printf ${{github.repository}} | tr A-Z a-z)
           echo CONTAINER_TAG=ghcr.io/${lowcase_repo}:${{github.ref_name}} | tee -a $GITHUB_ENV
-          echo tag=${CONTAINER_TAG} >> $GITHUB_OUTPUT         
+          echo tag=${CONTAINER_TAG} >> $GITHUB_OUTPUT
+      - name: Log in to registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
       - name: build-container
         run : docker build -t ${{env.CONTAINER_TAG}} -f .github/workflows/Dockerfile .
       - name: push-container
