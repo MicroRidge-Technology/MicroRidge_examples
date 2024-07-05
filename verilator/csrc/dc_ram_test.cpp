@@ -22,13 +22,15 @@ public:
         cd_b(ClockDriver([&](uint8_t clk) { dut->clk_b = clk; }, 10ns)) {
     add_clock(cd_a);
     add_clock(cd_b);
+    int ram_depth = (1 << 6);
+    debug(ram_depth);
     dut->we_a = 0;
     dut->we_b = 0;
+    debug(ram_depth);
     tick_a(10);
-
+    debug(ram_depth);
     run_until_rising_edge(dut->clk_a);
 
-    int ram_depth = (1 << 6);
 
     /* write the ram on port a
      * read back on port a, verify contents
@@ -38,6 +40,7 @@ public:
      * read back on port b, verify contents
      * read back on port a, verify contents
      */
+    debug(ram_depth);
     for (int i = 0; i < ram_depth; ++i) {
       dut->we_a = 1;
       dut->data_a = ~i;
@@ -46,7 +49,7 @@ public:
       dut->we_a = 0;
       tick_a();
     }
-
+    debug(ram_depth);
     for (uint8_t i = 0; i < ram_depth; ++i) {
       dut->addr_a = i;
       uint8_t expected_val = ~i;
@@ -54,9 +57,10 @@ public:
       tick_a();
       except_assert(dut->q_a == expected_val);
     }
+    debug(ram_depth);
     dut->addr_b = 17;
     tick_b(10);
-
+    debug(ram_depth);
     for (uint8_t i = 0; i < ram_depth; ++i) {
       dut->addr_b = i;
       uint8_t expected_val = ~i;
@@ -64,7 +68,7 @@ public:
       tick_b();
       except_assert(dut->q_b == expected_val);
     }
-
+    debug(ram_depth);
     /*write on port b*/
     for (int i = 0; i < ram_depth; ++i) {
       dut->we_b = 1;
@@ -74,7 +78,7 @@ public:
       dut->we_b = 0;
       tick_b();
     }
-
+    debug(ram_depth);
     for (uint8_t i = 0; i < ram_depth; ++i) {
       dut->addr_b = i;
       uint8_t expected_val = ~i + 7;
@@ -82,7 +86,7 @@ public:
       tick_b();
       except_assert(dut->q_b == expected_val);
     }
-
+    debug(ram_depth);
     tick_a(10);
     for (uint8_t i = 0; i < ram_depth; ++i) {
       dut->addr_a = i;
