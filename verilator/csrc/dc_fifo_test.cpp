@@ -124,7 +124,9 @@ int main(int argc,char** argv){
 	dc_fifo_test test(argc,argv);
     }catch(std::exception &e){
 	printf("Test Failed:\n\t%s\n",e.what());
+	return 1;
     }
+    printf("Test Passed!\n");
     return 0;
 
 }
