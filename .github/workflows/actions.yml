@@ -44,6 +44,7 @@ jobs:
     container:
       image: ${{needs.build-container.outputs.CONTAINER_TAG}}    
     steps:
+      - uses: actions/checkout@v4
       - run: echo ${{env.PATH}} 
       - name: configure builds
         run:  mkdir build && cd build && cmake -G Ninja ../verilator
