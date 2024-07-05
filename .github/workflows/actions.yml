@@ -15,37 +15,10 @@ env:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  build-container:
-    # The type of runner that the job will run on
-    runs-on: ubuntu-latest
-    permissions:
-      packages: write
-    outputs:
-      CONTAINER_TAG: ${{ steps.container-tag.outputs.tag }}
-    # Steps represent a sequence of tasks that will be executed as part of the job
-    steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v4
-
-      - name: container-tag
-        run : |
-          lowcase_repo=$(printf ${{github.repository}} | tr A-Z a-z)
-          CONTAINER_TAG=ghcr.io/${lowcase_repo}_container:${{github.ref_name}}
-          echo CONTAINER_TAG=$CONTAINER_TAG  | tee -a $GITHUB_ENV
-          echo tag=${CONTAINER_TAG} >> $GITHUB_OUTPUT
-      - name: Log in to registry
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-      - name: pull existing container if it exists
-        run:  docker pull ${{env.CONTAINER_TAG}} || true
-      - name: rebuild Container
-        run : docker build -t ${{env.CONTAINER_TAG}} -f .github/workflows/Dockerfile .
-      - name: push-container
-        run : docker push ${{env.CONTAINER_TAG}}
   tests:
     runs-on: ubuntu-latest
-    needs: build-container
     container:
-      image: ${{needs.build-container.outputs.CONTAINER_TAG}}    
+      image: ghcr.io/microridge-technology/verilator:v5.018
     steps:
       - uses: actions/checkout@v4
       - run: |
