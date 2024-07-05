@@ -17,7 +17,7 @@ env:
 jobs:
   build-container:
     # The type of runner that the job will run on
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     permissions:
       packages: write
     outputs:
@@ -39,11 +39,12 @@ jobs:
       - name: push-container
         run : docker push ${{env.CONTAINER_TAG}}
   tests:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     needs: build-container
     container:
       image: ${{needs.build-container.outputs.CONTAINER_TAG}}    
     steps:
+      - run: echo ${{env.PATH}} 
       - name: configure builds
         run:  mkdir build && cd build && cmake -G Ninja ../verilator
       - name: build
