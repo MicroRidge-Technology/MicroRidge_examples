@@ -34,7 +34,9 @@ jobs:
           echo tag=${CONTAINER_TAG} >> $GITHUB_OUTPUT
       - name: Log in to registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-      - name: build-container
+      - name: pull existing container if it exists
+        run:  docker pull ${{env.CONTAINER_TAG}}
+      - name: rebuild Container
         run : docker build -t ${{env.CONTAINER_TAG}} -f .github/workflows/Dockerfile .
       - name: push-container
         run : docker push ${{env.CONTAINER_TAG}}
@@ -45,7 +47,11 @@ jobs:
       image: ${{needs.build-container.outputs.CONTAINER_TAG}}    
     steps:
       - uses: actions/checkout@v4
-      - run: echo ${{env.PATH}} 
+      - run: |
+          "echo PATH=$PATH"
+          which cmake
+          which ninja
+          which verilator
       - name: configure builds
         run:  mkdir build && cd build && cmake -G Ninja ../verilator
       - name: build
