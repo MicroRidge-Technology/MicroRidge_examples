@@ -30,12 +30,13 @@ jobs:
       - name: container-tag
         run : |
           lowcase_repo=$(printf ${{github.repository}} | tr A-Z a-z)
-          echo CONTAINER_TAG=ghcr.io/${lowcase_repo}:${{github.ref_name}} | tee -a $GITHUB_ENV
+          CONTAINER_TAG=ghcr.io/${lowcase_repo}_container:${{github.ref_name}}
+          echo CONTAINER_TAG=$CONTAINER_TAG  | tee -a $GITHUB_ENV
           echo tag=${CONTAINER_TAG} >> $GITHUB_OUTPUT
       - name: Log in to registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
       - name: pull existing container if it exists
-        run:  docker pull ${{env.CONTAINER_TAG}}
+        run:  docker pull ${{env.CONTAINER_TAG}} || true
       - name: rebuild Container
         run : docker build -t ${{env.CONTAINER_TAG}} -f .github/workflows/Dockerfile .
       - name: push-container
@@ -48,7 +49,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: |
-          "echo PATH=$PATH"
+          echo PATH=$PATH
           which cmake
           which ninja
           which verilator
