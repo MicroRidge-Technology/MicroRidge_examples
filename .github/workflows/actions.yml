@@ -32,4 +32,11 @@ jobs:
         run: ninja -C build
       - name: run tests
         run: cd build;ctest --output-on-failure
+  vivado-builds:
+    runs-on: [self-hosted,Vivado]
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          make -C targets/zc702/ build
       
+    
