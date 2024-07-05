@@ -31,7 +31,5 @@ jobs:
       - name: build
         run: ninja -C build
       - name: run tests
-        run: cd build;ctest -V
-      # Runs a set of commands using the runners shell
-      #- name: Run a command to make sure verilator is installed!
+        run: cd build;ctest --output-on-failure
       
