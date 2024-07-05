@@ -37,10 +37,12 @@ private:
     int clk_val;
 public:
     ClockDriver(std::function<void(uint8_t)> fun,duration_t period)
+	:m_last_update(0),clk_val(0)
         {
 	    up_time = period/2;
 	    down_time = period -up_time;
 	    clock_fun = fun;
+	    clk_val=0;
 	}
     void add_callback(std::function < void(edge_e)> fun, edge_e e=edge_e::RISE_EDGE) {
 
@@ -125,8 +127,9 @@ protected:
 	duration_t now=duration_t(m_context->time());
         for(auto &cd: m_clocks){
 	    auto &c  = cd.get();
-            if(c.next_update() < min_update)
-                min_update= c.next_update();
+	    auto x = c.next_update();
+            if(x < min_update)
+                min_update= x;
         }
 
         dut->eval();
