@@ -34,9 +34,12 @@ jobs:
         run: cd build;ctest --output-on-failure
   vivado-builds:
     runs-on: [self-hosted,Vivado]
+    strategy:
+      matrix:
+        target: ['zc702','xem8320_xvc']
     steps:
       - uses: actions/checkout@v4
       - run: |
-          make -C targets/zc702/ build
+          make -C targets/${{ matrix.target}}/ build
       
     

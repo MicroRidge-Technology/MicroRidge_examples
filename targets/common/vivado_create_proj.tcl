@@ -4,7 +4,7 @@ proc mr_export_bd { design_name output_file } {
     open_bd_design [get_files $design_name.bd]
     validate_bd_design
     write_bd_tcl -force $output_file.tmp
-    close_bd_design [get_bd_designs]
+    close_bd_design [current_bd_design]
     
     # if new file is differnt than old file copy over old file
     set f1 [open $output_file.tmp.tcl]
@@ -42,8 +42,8 @@ proc create_proj { project_name part rtl_files xdc_files include_dirs bd_tcl_fil
         regexp {design_name (\w+)} $filecontents _ bd_name
         puts $bd_export_tcl "mr_export_bd $bd_name [file normalize $bdtcl]"
         unset bd_name
-        source $bdtcl
-        close_bd_design [get_bd_designs]
+        source -notrace $bdtcl
+        close_bd_design [current_bd_design ]
     }
     close $bd_export_tcl
     #add_files -fileset utils_1 -norecurse $export_bd_fname 
@@ -62,4 +62,9 @@ proc run_backend {} {
     launch_runs impl_1 -to_step write_bitstream;
     wait_on_run impl_1;
     
+}
+
+
+proc export_all_bd {} {
+    source -notrce [get_property DIRECTORY [current_project]]/export_bd.tcl
 }

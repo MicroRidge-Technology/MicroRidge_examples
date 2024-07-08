@@ -1,4 +1,4 @@
-VIVADO_VERSION=2023.2
+VIVADO_VERSION?=2023.2
 
 VIVADO_SEARCH:=$(shell which vivado)
 VIVADO_SEARCH+=$(wildcard /tools/Xilinx/Vivado/$(VIVADO_VERSION)/bin/vivado)
