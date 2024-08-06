@@ -108,7 +108,7 @@ protected:
 	    if(waveform_file){
 		m_trace = new VerilatedFstC;
 		dut->trace(m_trace,99);
-		m_trace->open("test.fst");
+		m_trace->open(waveform_file);
 	    }else{
 		m_trace =NULL;
 	    }
