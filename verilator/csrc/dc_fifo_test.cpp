@@ -10,7 +10,7 @@ protected:
 public:
     void tick_wr(int ticks = 1) {
 	while(ticks--){
-	    run_until_rising_edge(dut->wr_clk);
+	    run_until_rising_edge(wr_clockdriver);
 	}
     }
     std::vector<uint16_t> read_data;
@@ -90,6 +90,8 @@ public:
 	add_clock(rd_clockdriver);
 
 	rd_clockdriver.add_callback([&](ClockDriver::edge_e e){on_read_clock(e);});
+
+
 
 
 

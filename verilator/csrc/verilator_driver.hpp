@@ -60,12 +60,13 @@ public:
 	    down_time = period -up_time;
 	    clock_fun = fun;
 	    clk_val=0;
+	    m_last_update=-down_time;
 	}
     void add_callback(std::function < void(edge_e)> fun, edge_e e=edge_e::RISE_EDGE) {
 
 	callback_functions.push_back({fun,e});
     }
-    duration_t next_update(){
+    duration_t next_update() const {
 	if(clk_val){
 	    return m_last_update+up_time;
 	}else{
@@ -83,12 +84,13 @@ public:
 	clock_fun(clk_val);
         m_last_update = now;
     }
+    edge_e get_upcoming_edge() const{
+	return clk_val?edge_e::FALL_EDGE:edge_e::RISE_EDGE;
+    }
     void exec_callbacks(){
-	edge_e ignore = clk_val ? edge_e::FALL_EDGE : edge_e::RISE_EDGE;
-	edge_e edge = clk_val ? edge_e::RISE_EDGE : edge_e::FALL_EDGE;
 	for(auto &cb : callback_functions){
-	    if (cb.edge != ignore){
-		cb.fun(edge);
+	    if (cb.edge == edge_e::BOTH_EDGE || cb.edge == get_upcoming_edge()){
+		cb.fun(get_upcoming_edge());
 	    }
 	}
     }
@@ -139,34 +141,37 @@ protected:
     void add_clock(ClockDriver& cd){
 	m_clocks.push_back(cd);
     }
+    duration_t get_now(){
+	return duration_t(m_context->time());
+    }
     duration_t update(){
-        duration_t min_update = m_clocks.begin()->get().next_update();
-	duration_t now=duration_t(m_context->time());
+	duration_t now=get_now();
+        for (auto &cd : m_clocks) {
+	    auto &c  = cd.get();
+	    if(c.next_update() == now){
+		c.exec_callbacks();
+	    }
+	}
+
+	for(auto &cd: m_clocks){
+	    auto &c  = cd.get();
+	    if(c.next_update() == now){
+		c.update(now);
+	    }
+        }
+	dut->eval();
+	if(m_trace){
+	    m_trace->dump(m_context->time());
+	}
+        duration_t min_update = duration_t::max();
         for(auto &cd: m_clocks){
 	    auto &c  = cd.get();
 	    auto x = c.next_update();
             if(x < min_update)
                 min_update= x;
         }
-
-        dut->eval();
-	for(auto &cd: m_clocks){
-	    auto &c  = cd.get();
-	    if(c.next_update() == min_update){
-		c.update(min_update);
-	    }
-        }
 	m_context->time(min_update.count());
-	if(m_trace){
-	    m_trace->dump(m_context->time());
-	}
-	dut->eval();
-        for (auto &cd : m_clocks) {
-	    auto &c  = cd.get();
-	    if(c.last_update() == min_update){
-		c.exec_callbacks();
-	    }
-	}
+
 	if(sim_timeout != std::chrono::milliseconds(0) && now >= sim_timeout){
 	    throw std::runtime_error("Simulation timed out\n");
 	}
@@ -181,16 +186,14 @@ protected:
 	}
 	return ran_time;
     }
-    template<typename pin_t>
-    duration_t run_until_rising_edge(pin_t& pin, int bit=0){
-	bool new_val = !!(pin &(1<<bit));
-	bool last_val=new_val;
+
+
+    duration_t run_until_rising_edge(const ClockDriver& cd){
 	duration_t ran_time(0);
-	while( !( new_val==1  && last_val==0)){
-	    last_val = new_val;
-	    ran_time+=update();
-	    new_val =!!(pin &(1<<bit));
-	}
+	do{
+            ran_time += update();
+	}while(get_now() != cd.next_update() || cd.get_upcoming_edge()!= ClockDriver::edge_e::RISE_EDGE);
+
 	return ran_time;
     }
 };

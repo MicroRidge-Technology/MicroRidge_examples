@@ -6,12 +6,12 @@ class dc_ram_test : public verilator_driver<Vdc_ram> {
   ClockDriver cd_a, cd_b;
   void tick_a(int ticks = 1) {
     while (ticks--) {
-      run_until_rising_edge(dut->clk_a);
+      run_until_rising_edge(cd_a);
     }
   }
   void tick_b(int ticks = 1) {
     while (ticks--) {
-      run_until_rising_edge(dut->clk_b);
+      run_until_rising_edge(cd_b);
     }
   }
 
@@ -26,7 +26,7 @@ public:
     dut->we_b = 0;
     tick_a(10);
 
-    run_until_rising_edge(dut->clk_a);
+    run_until_rising_edge(cd_a);
 
     int ram_depth = (1 << 6);
 
