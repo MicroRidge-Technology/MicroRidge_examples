@@ -101,7 +101,7 @@ public:
   }
   void exec_callbacks() {
     for (auto &cb : callback_functions) {
-      if (cb.edge == edge_e::BOTH_EDGE || cb.edge == get_upcoming_edge()) {
+      if (cb.edge == edge_e::BOTH_EDGE || cb.edge != get_upcoming_edge()) {
         cb.fun(get_upcoming_edge());
       }
     }
@@ -117,7 +117,10 @@ template <typename dut_t> class verilator_driver {
 
 protected:
   dut_t *dut;
-
+  /*set timout relative to NOW */
+  void set_sim_timeout(duration_t timeout) {
+    sim_timeout = get_now() + timeout;
+  }
   verilator_driver(int argc, char **argv) {
     char *waveform_file = NULL;
     for (int a = 1; a < argc; a++) {
@@ -151,10 +154,11 @@ protected:
   void add_clock(ClockDriver &cd) { m_clocks.push_back(cd); }
   duration_t get_now() { return duration_t(m_context->time()); }
   duration_t update() {
-    duration_t start = get_now();
+    dut->eval();
     if (m_trace) {
       m_trace->dump(m_context->time());
     }
+    duration_t start = get_now();
     duration_t min_update = duration_t::max();
     for (auto &cd : m_clocks) {
       auto &c = cd.get();
@@ -165,12 +169,6 @@ protected:
     m_context->time(min_update.count());
 
     duration_t now = get_now();
-    for (auto &cd : m_clocks) {
-      auto &c = cd.get();
-      if (c.next_update() == now) {
-        c.exec_callbacks();
-      }
-    }
 
     for (auto &cd : m_clocks) {
       auto &c = cd.get();
@@ -179,6 +177,12 @@ protected:
       }
     }
     dut->eval();
+    for (auto &cd : m_clocks) {
+      auto &c = cd.get();
+      if (c.last_update() == now) {
+        c.exec_callbacks();
+      }
+    }
 
     if (sim_timeout != std::chrono::milliseconds(0) && now >= sim_timeout) {
       throw std::runtime_error("Simulation timed out\n");
