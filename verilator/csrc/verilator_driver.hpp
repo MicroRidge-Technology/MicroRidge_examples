@@ -31,11 +31,11 @@
 #define debug(a)                                                               \
   printf("%s:%d %s = %lld\n", __FILE__, __LINE__, #a, (long long)(a))
 
-#define debugx(a)                                                               \
-  printf("%s:%d %s = 0x%08llx\n", __FILE__, __LINE__, #a, (long long unsigned)(a))
+#define debugx(a)                                                              \
+  printf("%s:%d %s = 0x%08llx\n", __FILE__, __LINE__, #a,                      \
+         (long long unsigned)(a))
 
-#define debugf(a)                                                               \
-  printf("%s:%d %s = %f\n", __FILE__, __LINE__, #a, (double)(a))
+#define debugf(a) printf("%s:%d %s = %f\n", __FILE__, __LINE__, #a, (double)(a))
 
 #define except_assert(test)                                                    \
   do {                                                                         \

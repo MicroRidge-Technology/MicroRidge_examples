@@ -1,10 +1,10 @@
-#include "Vdc_fifo.h"
+#include "Vdc_fifo_fwft.h"
 #include "verilator_driver.hpp"
 #include <cstdint>
 #include <cstdlib>
 
 using namespace std::chrono_literals;
-class dc_fifo_test : public verilator_driver<Vdc_fifo> {
+class dc_fifo_test : public verilator_driver<Vdc_fifo_fwft> {
 protected:
   ClockDriver wr_clockdriver, rd_clockdriver;
 
@@ -17,14 +17,10 @@ public:
   std::vector<uint16_t> read_data;
   double read_prob;
   void on_read_clock(ClockDriver::edge_e) {
-    if (dut->rd_read) {
-      // if 2 clocks set the read byte,
-      // this clock has the data
-      read_data.push_back(dut->rd_dout);
-    }
     dut->rd_read = 0;
     if (!dut->rd_empty) {
       if (rand() / double(RAND_MAX) < read_prob) {
+        read_data.push_back(dut->rd_dout);
         dut->rd_read = 1;
       }
     }
@@ -73,7 +69,6 @@ public:
     while (!dut->rd_empty) {
       run(1us);
     }
-
     except_assert(read_data.size() == write_data.size());
 
     for (unsigned i = 0; i < read_data.size(); ++i) {

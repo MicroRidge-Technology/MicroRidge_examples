@@ -13,6 +13,8 @@ function(add_verilator_library name source)
 endfunction()
 add_verilator_library(dc_ram ../rtl/dc_ram.sv)
 add_verilator_library(dc_fifo ../rtl/dc_fifo.sv)
+verilate(dc_fifo SOURCES ../rtl/dc_fifo.sv PREFIX Vdc_fifo_fwft TRACE_FST TRACE_STRUCT VERILATOR_ARGS -GFWFT=1'b1)
+verilate(dc_fifo SOURCES ../rtl/dc_fifo.sv PREFIX Vdc_fifo_outreg TRACE_FST TRACE_STRUCT VERILATOR_ARGS -GOUT_REG=1'b1)
 
 set(CLANGFORMAT_DL_URL https://github.com/muttleyxd/clang-tools-static-binaries/releases/download/master-32d3ac78/clang-format-18_linux-amd64)
 set(VERIBLE_DL_URL https://github.com/chipsalliance/verible/releases/download/v0.0-3756-gda9a0f8c/verible-v0.0-3756-gda9a0f8c-linux-static-x86_64.tar.gz)
@@ -54,4 +56,12 @@ create_test(dc_ram_test
 
 create_test(dc_fifo_test
   CXX_SOURCES csrc/dc_fifo_test.cpp
+  VERILATOR_LIBRARY dc_fifo)
+
+create_test(dc_fifo_fwft_test
+  CXX_SOURCES csrc/dc_fifo_fwft_test.cpp
+  VERILATOR_LIBRARY dc_fifo)
+
+create_test(dc_fifo_outreg_test
+  CXX_SOURCES csrc/dc_fifo_outreg_test.cpp
   VERILATOR_LIBRARY dc_fifo)

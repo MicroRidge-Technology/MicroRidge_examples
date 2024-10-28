@@ -1,10 +1,10 @@
-#include "Vdc_fifo.h"
+#include "Vdc_fifo_outreg.h"
 #include "verilator_driver.hpp"
 #include <cstdint>
 #include <cstdlib>
 
 using namespace std::chrono_literals;
-class dc_fifo_test : public verilator_driver<Vdc_fifo> {
+class dc_fifo_test : public verilator_driver<Vdc_fifo_outreg> {
 protected:
   ClockDriver wr_clockdriver, rd_clockdriver;
 
@@ -16,12 +16,14 @@ public:
   }
   std::vector<uint16_t> read_data;
   double read_prob;
+  int rd_read_d;
   void on_read_clock(ClockDriver::edge_e) {
-    if (dut->rd_read) {
+    if (rd_read_d) {
       // if 2 clocks set the read byte,
       // this clock has the data
       read_data.push_back(dut->rd_dout);
     }
+    rd_read_d = dut->rd_read;
     dut->rd_read = 0;
     if (!dut->rd_empty) {
       if (rand() / double(RAND_MAX) < read_prob) {
@@ -68,17 +70,18 @@ public:
         }
       }
     }
-    // debug(stalls);
+    debug(stalls);
     run(1us);
     while (!dut->rd_empty) {
       run(1us);
     }
-
     except_assert(read_data.size() == write_data.size());
 
     for (unsigned i = 0; i < read_data.size(); ++i) {
       if (read_data.at(i) != write_data.at(i)) {
         debug(i);
+        debugx(read_data[i]);
+        debugx(write_data[i]);
         except_assert(read_data[i] == write_data[i]);
       }
     }
@@ -95,6 +98,8 @@ public:
 
     rd_clockdriver.add_callback(
         [&](ClockDriver::edge_e e) { on_read_clock(e); });
+
+    rd_read_d = 0;
 
     dut->rd_read = 0;
     dut->wr_write = 0;
