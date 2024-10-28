@@ -23,6 +23,10 @@ jobs:
       - uses: actions/checkout@v4
       - run: |
           echo PATH=$PATH
+          id
+          pwd
+          ls -la
+          env
           which cmake
           which ninja
           which verilator
