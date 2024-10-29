@@ -23,7 +23,7 @@ module dc_fifo #(
     output logic [L2DEPTH-1:0] rd_usedw
 );
 
-  if (!!FWFT && !!OUT_REG) begin
+  if (FWFT && OUT_REG) begin
     $fatal("FWFT and OUT_REG are incompatible\n");
   end
 
