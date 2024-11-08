@@ -22,9 +22,11 @@
 #define VERILATOR_DRIVER_HPP
 #include "verilated.h"
 #include <chrono>
+#include <cstdint>
 #include <memory>
 #include <ratio>
 #include <stdexcept>
+#include <sys/types.h>
 #include <vector>
 #include <verilated_fst_c.h>
 
@@ -59,7 +61,8 @@
 
 class ClockDriver {
 public:
-  using duration_t = std::chrono::nanoseconds;
+  using duration_t = std::chrono::duration<int64_t, std::pico>;
+
   enum class edge_e { RISE_EDGE, FALL_EDGE, BOTH_EDGE };
 
 private:
@@ -75,14 +78,21 @@ private:
   int clk_val;
 
 public:
-  ClockDriver(std::function<void(uint8_t)> fun, duration_t period)
+  ClockDriver(std::function<void(uint8_t)> fun,
+              std::chrono::duration<long double, std::nano> period)
       : m_last_update(0), clk_val(0) {
-    up_time = period / 2;
-    down_time = period - up_time;
+    /**
+     * Constructor for floating point nanoseconds
+     */
+
+    duration_t dur_period(int(period.count()) * 1000);
+    up_time = dur_period / 2;
+    down_time = dur_period - up_time;
     clock_fun = fun;
     clk_val = 0;
     m_last_update = duration_t(0);
   }
+
   void add_callback(std::function<void(edge_e)> fun,
                     edge_e e = edge_e::RISE_EDGE) {
 
@@ -143,6 +153,10 @@ protected:
     }
 
     dut = new dut_t(m_context);
+
+    m_context->timeunit(12);
+    m_context->timeprecision(12);
+
     if (waveform_file) {
       m_trace = new VerilatedFstC;
       dut->trace(m_trace, 99);

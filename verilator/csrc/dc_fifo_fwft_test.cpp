@@ -84,7 +84,7 @@ public:
         wr_clockdriver(
             ClockDriver([&](uint8_t clk) { dut->wr_clk = clk; }, 10ns)),
         rd_clockdriver(
-            ClockDriver([&](uint8_t clk) { dut->rd_clk = clk; }, 11ns)) {
+            ClockDriver([&](uint8_t clk) { dut->rd_clk = clk; }, 3.333ns)) {
     add_clock(wr_clockdriver);
     add_clock(rd_clockdriver);
 
