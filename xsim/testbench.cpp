@@ -3,7 +3,6 @@
 #include <cstring>
 #include <iostream>
 
-#include "xsi_loader.h"
 #include "xsi.h"
 const char* expected_out[15] = {"0001", "0010", "0011", "0100", "0101", "0110", "0111", "1000", "1001", "1010", "1011", "1100", "1101", "1110", "1111"};
 
@@ -112,7 +111,6 @@ int main(int argc, char **argv)
     int status = 0;
 
     try {
-        Xsi::Loader Xsi_Instance(design_libname, simengine_libname);
         s_xsi_setup_info info;
         memset(&info, 0, sizeof(info));
         info.logFileName = NULL;
