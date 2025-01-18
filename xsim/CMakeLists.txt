@@ -22,21 +22,28 @@ function(create_xsim_library name)
   else()
     set(SV_CMD true)
   endif()
-  add_custom_command(OUTPUT xsim.dir/${XSIMtest_TOPLEVEL}/xsimk.so
+  add_custom_command(OUTPUT xsim.dir/${XSIMtest_TOPLEVEL}/lib${XSIMtest_TOPLEVEL}_sim.so
     DEPENDS ${XSIMtest_VERILOG_SOURCES} ${XSIMtest_SV_SOURCES}
     COMMAND ${XVLOG} -work work_${XSIMtest_TOPLEVEL} ${XSIMtest_VLOG_ARGS} --incr ${XSIMtest_VERILOG_SOURCES}
     COMMAND ${SV_CMD}
-    COMMAND ${XELAB} work_${XSIMtest_TOPLEVEL}.${XSIMtest_TOPLEVEL} ${XSIMtest_ELAB_ARGS} -dll -s ${XSIMtest_TOPLEVEL} -debug wave)
+    COMMAND ${XELAB} work_${XSIMtest_TOPLEVEL}.${XSIMtest_TOPLEVEL} ${XSIMtest_ELAB_ARGS} -dll -s ${XSIMtest_TOPLEVEL} -debug wave
+    COMMAND cmake -E copy_if_different xsim.dir/${XSIMtest_TOPLEVEL}/xsimk.so xsim.dir/${XSIMtest_TOPLEVEL}/lib${XSIMtest_TOPLEVEL}_sim.so) 
   add_custom_target(${name}
-    DEPENDS  xsim.dir/${XSIMtest_TOPLEVEL}/xsimk.so)
+    DEPENDS  xsim.dir/${XSIMtest_TOPLEVEL}/lib${XSIMtest_TOPLEVEL}_sim.so
+  )
 endfunction()
-
-
+function(target_link_xsim_library target library_name)
+  add_dependencies(${target} ${library_name})
+  target_include_directories(${target} PUBLIC ${VIVADO_BIN_DIR}/../data/xsim/include/)
+  target_link_directories(${target} PUBLIC ${VIVADO_BIN_DIR}/../lib/lnx64.o  ${CMAKE_BINARY_DIR}/xsim.dir/${library_name}/)
+  target_link_libraries(${target} PUBLIC xv_simulator_kernel ${library_name}_sim)
+  target_link_options(${target} PUBLIC -Wl,--disable-new-dtags)
+endfunction()
 create_xsim_library(counter TOPLEVEL counter VERILOG_SOURCES ../rtl/counter.v)
 
 add_executable(testbench
   testbench.cpp
   xsi_loader.cpp
 )
-add_dependencies(testbench counter)
-target_include_directories(testbench PUBLIC ${VIVADO_BIN_DIR}/../data/xsim/include/)
+target_link_xsim_library(testbench counter)
+
