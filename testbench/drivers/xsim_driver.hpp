@@ -21,6 +21,7 @@
 #ifndef XSIM_DRIVER_HPP
 #define XSIM_DRIVER_HPP
 #include "sim_driver.hpp"
+#include <filesystem>
 #include <xsi.h>
 
 
@@ -74,12 +75,27 @@ protected:
 	std::string waveform_file = parse_cmd_line_args(argc,argv);
 	s_xsi_setup_info info = {0};
 	info.logFileName = NULL;
+
+	//for some reason the xsim generated `xsi_open` must run from the directory of the executable
+	//for that reason we do some hackery here to save the current directory, jump to that directory
+	//then got back to the saved directory.
+	//the waveform file needs to be transformed to a absolute path to make this work
+
+
 	if(waveform_file != ""){
-	    info.wdbFileName = (char*)waveform_file.c_str();
+	    auto waveform_path =
+		std::filesystem::absolute(std::filesystem::path(waveform_file));
+	    info.wdbFileName = (char*)waveform_path.c_str();
 	} else{
 	    info.wdbFileName = NULL;
 	}
-	xsi_handle = xsi_open(&info);
+
+	auto arg0_dir = std::filesystem::absolute(std::filesystem::path(argv[0])).remove_filename();
+        auto saved_cwd = std::filesystem::current_path();
+	std::filesystem::current_path(arg0_dir);
+        xsi_handle = xsi_open(&info);
+        std::filesystem::current_path(saved_cwd);
+
 	if(waveform_file != ""){
 	    xsi_trace_all(xsi_handle);
 	}

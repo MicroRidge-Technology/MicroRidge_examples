@@ -49,7 +49,7 @@ endfunction()
 function(target_link_xsim_library target library_name)
   add_dependencies(${target} ${library_name})
   get_target_property(xsim_dir ${library_name} XSIM_DIR)
-
+  set_property(TARGET ${target} PROPERTY CXX_STANDARD 20)
   target_include_directories(${target} PUBLIC ${VIVADO_BIN_DIR}/../data/xsim/include/)
   target_link_directories(${target} PUBLIC ${VIVADO_BIN_DIR}/../lib/lnx64.o  ${xsim_dir}/)
   target_link_libraries(${target} PUBLIC xv_simulator_kernel ${library_name}_xsim)
