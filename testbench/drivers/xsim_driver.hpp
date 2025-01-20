@@ -83,9 +83,9 @@ protected:
 
 
 	if(waveform_file != ""){
-	    auto waveform_path =
+	    waveform_file =
 		std::filesystem::absolute(std::filesystem::path(waveform_file));
-	    info.wdbFileName = (char*)waveform_path.c_str();
+	    info.wdbFileName = (char*)waveform_file.c_str();
 	} else{
 	    info.wdbFileName = NULL;
 	}

@@ -5,4 +5,5 @@ function(add_verilator_library name source)
   verilate(${name} SOURCES ${source}
     TRACE_FST TRACE_STRUCT
   )
+  target_include_directories(${name} PUBLIC ${CMAKE_CURRENT_FUNCTION_LIST_DIR})
 endfunction()

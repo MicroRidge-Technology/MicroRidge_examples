@@ -1,5 +1,6 @@
-#include "xsim_driver.hpp"
 
+#if defined( USE_XSIM)
+#include "xsim_driver.hpp"
 
 struct dc_ram_dut{
     static constexpr int DATA_WIDTH=8;
@@ -26,9 +27,15 @@ struct dc_ram_dut{
 	sim_port_construct(q_a),
 	sim_port_construct(q_b){}
 };
+using  driver_t =  xsim_driver<dc_ram_dut>;
+#else
+#include "Vdc_ram.h"
+#include "verilator_driver.hpp"
 
+using driver_t = verilator_driver<Vdc_ram> ;
+#endif
 using namespace std::chrono_literals;
-class dc_ram_test : public xsim_driver<dc_ram_dut> {
+class dc_ram_test : public driver_t {
   ClockDriver cd_a, cd_b;
   void tick_a(int ticks = 1) {
     while (ticks--) {
@@ -43,7 +50,7 @@ class dc_ram_test : public xsim_driver<dc_ram_dut> {
 
 public:
   dc_ram_test(int argc, char **argv)
-      : xsim_driver(argc, argv),
+      : driver_t(argc, argv),
         cd_a(ClockDriver([&](uint8_t clk) { dut->clk_a = clk; }, 15ns)),
         cd_b(ClockDriver([&](uint8_t clk) { dut->clk_b = clk; }, 10ns)) {
     add_clock(cd_a);

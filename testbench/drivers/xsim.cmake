@@ -56,3 +56,26 @@ function(target_link_xsim_library target library_name)
   target_link_options(${target} PUBLIC -Wl,--disable-new-dtags)
   target_include_directories(${target} PUBLIC ${CMAKE_CURRENT_FUNCTION_LIST_DIR})
 endfunction()
+
+file(GENERATE OUTPUT ${CMAKE_BINARY_DIR}/open_wave
+    CONTENT "#!/bin/sh
+#\\
+${VIVADO_BIN} -source $0 -tclargs $@
+#\\
+exit $?
+set wave $argv
+set cfg $wave.wcfg
+open_wave_database $wave
+if { [file exists $cfg ] } {
+    open_wave_config $cfg
+}
+proc reopen_wave {} {
+    global cfg
+    global wave
+    save_wave_config $cfg
+    close_sim
+    open_wave_database $wave
+    open_wave_config $cfg
+}
+"
+    FILE_PERMISSIONS OWNER_READ OWNER_EXECUTE)

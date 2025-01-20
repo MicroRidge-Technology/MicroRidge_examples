@@ -38,11 +38,11 @@ protected:
     sim_timeout = get_now() + timeout;
   }
   verilator_driver(int argc, char **argv) {
-      std::string waveform_file = parse_cmd_line_args();
+      std::string waveform_file = parse_cmd_line_args(argc,argv);
 
     m_context = new VerilatedContext;
     m_context->commandArgs(argc, argv);
-    if (waveform_file) {
+    if (waveform_file !="") {
       m_context->traceEverOn(true);
     }
 
@@ -54,7 +54,7 @@ protected:
     if (waveform_file != "") {
       m_trace = new VerilatedFstC;
       dut->trace(m_trace, 99);
-      m_trace->open(waveform_file);
+      m_trace->open(waveform_file.c_str());
     } else {
       m_trace = NULL;
     }
