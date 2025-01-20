@@ -31,7 +31,7 @@ jobs:
           which ninja
           which verilator
       - name: configure builds
-        run:  mkdir build && cd build && cmake -G Ninja ../verilator
+        run:  mkdir build && cd build && cmake -G Ninja ../testbench
       - name: build
         run: ninja -C build
       - name: run tests
