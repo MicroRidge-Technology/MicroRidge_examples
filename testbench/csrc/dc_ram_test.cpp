@@ -1,38 +1,33 @@
 
-#if defined( USE_XSIM)
+#if defined(USE_XSIM)
 #include "xsim_driver.hpp"
 
-struct dc_ram_dut{
-    static constexpr int DATA_WIDTH=8;
-    static constexpr int ADDR_WIDTH=6;
-    sim_port<uint8_t,DATA_WIDTH> data_a;
-    sim_port<uint8_t,DATA_WIDTH> data_b;
-    sim_port<uint8_t,ADDR_WIDTH> addr_a;
-    sim_port<uint8_t,ADDR_WIDTH> addr_b;
-    sim_port<uint8_t,1> we_a;
-    sim_port<uint8_t,1> we_b;
-    sim_port<uint8_t,1> clk_a;
-    sim_port<uint8_t,1> clk_b;
-    sim_port<uint8_t,DATA_WIDTH> q_a;
-    sim_port<uint8_t,DATA_WIDTH> q_b;
-    dc_ram_dut(xsiHandle handle):
-	sim_port_construct(data_a),
-	sim_port_construct(data_b),
-	sim_port_construct(addr_a),
-	sim_port_construct(addr_b),
-	sim_port_construct(we_a),
-	sim_port_construct(we_b),
-	sim_port_construct(clk_a),
-	sim_port_construct(clk_b),
-	sim_port_construct(q_a),
-	sim_port_construct(q_b){}
+struct dc_ram_dut {
+  static constexpr int DATA_WIDTH = 8;
+  static constexpr int ADDR_WIDTH = 6;
+  sim_port<uint8_t, DATA_WIDTH> data_a;
+  sim_port<uint8_t, DATA_WIDTH> data_b;
+  sim_port<uint8_t, ADDR_WIDTH> addr_a;
+  sim_port<uint8_t, ADDR_WIDTH> addr_b;
+  sim_port<uint8_t, 1> we_a;
+  sim_port<uint8_t, 1> we_b;
+  sim_port<uint8_t, 1> clk_a;
+  sim_port<uint8_t, 1> clk_b;
+  sim_port<uint8_t, DATA_WIDTH> q_a;
+  sim_port<uint8_t, DATA_WIDTH> q_b;
+  dc_ram_dut(xsiHandle handle)
+      : sim_port_construct(data_a), sim_port_construct(data_b),
+        sim_port_construct(addr_a), sim_port_construct(addr_b),
+        sim_port_construct(we_a), sim_port_construct(we_b),
+        sim_port_construct(clk_a), sim_port_construct(clk_b),
+        sim_port_construct(q_a), sim_port_construct(q_b) {}
 };
-using  driver_t =  xsim_driver<dc_ram_dut>;
+using driver_t = xsim_driver<dc_ram_dut>;
 #else
 #include "Vdc_ram.h"
 #include "verilator_driver.hpp"
 
-using driver_t = verilator_driver<Vdc_ram> ;
+using driver_t = verilator_driver<Vdc_ram>;
 #endif
 using namespace std::chrono_literals;
 class dc_ram_test : public driver_t {

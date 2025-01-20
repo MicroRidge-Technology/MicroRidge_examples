@@ -127,39 +127,38 @@ public:
 class sim_driver {
 protected:
   using duration_t = ClockDriver::duration_t;
-    std::unordered_map<std::string,std::string> cmd_line_args;
-    std::vector<std::reference_wrapper<ClockDriver>> m_clocks;
-    /**
-     * \brief Parse the command line arguments of form key=value, stor as unordered_map member variable cmd_line_args
-     * \returns the last arg as the waveform file
-     **/
-    std::string parse_cmd_line_args(int argc,char** argv){
-	std::string waveform_file="";
-	for(int i =1;i<argc;++i){
-	    std::string arg(argv[i]);
-	    if(arg[0] == '+'){
-		//ignore arguments that start with +
-		break;
-	    }
-	    auto eq_index = arg.find("=");
-	    if(eq_index != std::string::npos){
-		auto key = arg.substr(0,eq_index);
-		auto value = arg.substr(eq_index,std::string::npos);
-		cmd_line_args[key] = value;
-	    }else{
-		waveform_file=arg;
-	    }
-	}
-	return waveform_file;
+  std::unordered_map<std::string, std::string> cmd_line_args;
+  std::vector<std::reference_wrapper<ClockDriver>> m_clocks;
+  /**
+   * \brief Parse the command line arguments of form key=value, stor as
+   *unordered_map member variable cmd_line_args \returns the last arg as the
+   *waveform file
+   **/
+  std::string parse_cmd_line_args(int argc, char **argv) {
+    std::string waveform_file = "";
+    for (int i = 1; i < argc; ++i) {
+      std::string arg(argv[i]);
+      if (arg[0] == '+') {
+        // ignore arguments that start with +
+        break;
+      }
+      auto eq_index = arg.find("=");
+      if (eq_index != std::string::npos) {
+        auto key = arg.substr(0, eq_index);
+        auto value = arg.substr(eq_index, std::string::npos);
+        cmd_line_args[key] = value;
+      } else {
+        waveform_file = arg;
+      }
     }
+    return waveform_file;
+  }
   duration_t sim_timeout;
   /*set timout relative to NOW */
   void set_sim_timeout(duration_t timeout) {
     sim_timeout = get_now() + timeout;
   }
-  sim_driver() {
-    sim_timeout = std::chrono::milliseconds(10);
-  }
+  sim_driver() { sim_timeout = std::chrono::milliseconds(10); }
   ~sim_driver() {}
   void add_clock(ClockDriver &cd) { m_clocks.push_back(cd); }
   virtual duration_t get_now() = 0;

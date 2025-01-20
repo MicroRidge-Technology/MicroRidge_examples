@@ -26,7 +26,6 @@
 template <typename dut_t> class verilator_driver : sim_driver {
   using duration_t = ClockDriver::duration_t;
 
-
   VerilatedContext *m_context;
   VerilatedFstC *m_trace;
   duration_t sim_timeout;
@@ -38,11 +37,11 @@ protected:
     sim_timeout = get_now() + timeout;
   }
   verilator_driver(int argc, char **argv) {
-      std::string waveform_file = parse_cmd_line_args(argc,argv);
+    std::string waveform_file = parse_cmd_line_args(argc, argv);
 
     m_context = new VerilatedContext;
     m_context->commandArgs(argc, argv);
-    if (waveform_file !="") {
+    if (waveform_file != "") {
       m_context->traceEverOn(true);
     }
 

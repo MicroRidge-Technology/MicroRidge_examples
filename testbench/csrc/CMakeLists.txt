@@ -1,17 +1,54 @@
-add_verilator_library(dc_ram ../../rtl/dc_ram.sv)
-#add_verilator_library(dc_fifo ../../rtl/dc_fifo.sv)
+
+function(create_test name )
+   cmake_parse_arguments(MRtest ""
+    "VERILATOR_LIBRARY;XSIM_LIBRARY"
+    "CXX_SOURCES"
+    ${ARGN})
+
+  if(DEFINED MRtest_VERILATOR_LIBRARY)
+    add_executable(${name} ${MRtest_CXX_SOURCES})
+    target_link_libraries(${name} PUBLIC ${MRtest_VERILATOR_LIBRARY})
+    set_property(TARGET ${name} PROPERTY CXX_STANDARD 20)
+    target_compile_options(${name} PRIVATE -Wall   -Werror)
+    add_dependencies(${name} format_source)
+    add_test(NAME ${name} COMMAND $<TARGET_FILE:${name}>)
+  endif()
+  if(DEFINED MRtest_XSIM_LIBRARY)
+    add_executable(${name}_xsim ${MRtest_CXX_SOURCES})
+    target_link_xsim_library(${name}_xsim ${MRtest_XSIM_LIBRARY})
+    target_compile_definitions(${name}_xsim PUBLIC -DUSE_XSIM=1)
+    set_property(TARGET ${name}_xsim PROPERTY CXX_STANDARD 20)
+    target_compile_options(${name}_xsim PRIVATE -Wall   -Werror)
+    add_dependencies(${name}_xsim format_source)
+    add_test(NAME ${name}_xsim COMMAND $<TARGET_FILE:${name}_xsim>)
+  endif()
+    
+endfunction()
 
 add_xsim_library(dc_ram_xsim TOPLEVEL dc_ram SV_SOURCES ../../rtl/dc_ram.sv)
-add_xsim_library(counter TOPLEVEL counter VERILOG_SOURCES ../../rtl/counter.v)
+add_xsim_library(dc_fifo_xsim TOPLEVEL dc_fifo SV_SOURCES ../../rtl/dc_fifo.sv)
 
-add_executable(dc_ram_test_xsim
-  dc_ram_test.cpp
+add_verilator_library(dc_ram ../../rtl/dc_ram.sv)
+add_verilator_library(dc_fifo ../../rtl/dc_fifo.sv)
+verilate(dc_fifo SOURCES ../../rtl/dc_fifo.sv PREFIX Vdc_fifo_fwft TRACE_FST TRACE_STRUCT VERILATOR_ARGS -GFWFT=1'b1)
+verilate(dc_fifo SOURCES ../../rtl/dc_fifo.sv PREFIX Vdc_fifo_outreg TRACE_FST TRACE_STRUCT VERILATOR_ARGS -GOUT_REG=1'b1)
+
+#add_verilator_library(dc_fifo ../../rtl/dc_fifo.sv)
+
+create_test(dc_ram_test
+  CXX_SOURCES dc_ram_test.cpp
+  VERILATOR_LIBRARY dc_ram
+  XSIM_LIBRARY dc_ram_xsim)
+
+create_test(dc_fifo_test
+  CXX_SOURCES dc_fifo_test.cpp
+  VERILATOR_LIBRARY dc_fifo
+  XSIM_LIBRARY dc_fifo_xsim
 )
-target_compile_definitions(dc_ram_test_xsim PUBLIC -DUSE_XSIM=1)
-target_link_xsim_library(dc_ram_test_xsim dc_ram_xsim)
+create_test(dc_fifo_fwft_test
+  CXX_SOURCES dc_fifo_fwft_test.cpp
+  VERILATOR_LIBRARY dc_fifo)
 
-
-add_executable(dc_ram_test
-  dc_ram_test.cpp
-)
-target_link_libraries(dc_ram_test PUBLIC dc_ram)
+create_test(dc_fifo_outreg_test
+  CXX_SOURCES dc_fifo_outreg_test.cpp
+  VERILATOR_LIBRARY dc_fifo)
