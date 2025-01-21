@@ -1,10 +1,44 @@
+
+
+#if defined(USE_XSIM)
+#include "xsim_driver.hpp"
+
+struct dc_fifo_dut {
+  static constexpr int L2DEPTH = 3;
+  sim_port<uint8_t, 1> wr_clk;
+  sim_port<uint8_t, 1> rd_clk;
+  sim_port<uint8_t, 1> wr_rstn;
+  sim_port<uint8_t, 1> wr_write;
+  sim_port<uint8_t, 1> wr_full;
+  sim_port<uint8_t, L2DEPTH> wr_usedw;
+  sim_port<uint8_t, 1> rd_rstn;
+  sim_port<uint8_t, 1> rd_read;
+  sim_port<uint8_t, 1> rd_empty;
+  sim_port<uint8_t, L2DEPTH> rd_usedw;
+  sim_port<uint16_t, 16> wr_din;
+  sim_port<uint16_t, 16> rd_dout;
+
+  dc_fifo_dut(xsiHandle handle)
+      : sim_port_construct(wr_clk), sim_port_construct(rd_clk),
+        sim_port_construct(wr_rstn), sim_port_construct(wr_write),
+        sim_port_construct(wr_full), sim_port_construct(wr_usedw),
+        sim_port_construct(rd_rstn), sim_port_construct(rd_read),
+        sim_port_construct(rd_empty), sim_port_construct(rd_usedw),
+        sim_port_construct(wr_din), sim_port_construct(rd_dout)
+
+  {}
+};
+using driver_t = xsim_driver<dc_fifo_dut>;
+#else
 #include "Vdc_fifo.h"
 #include "verilator_driver.hpp"
 #include <cstdint>
 #include <cstdlib>
 
+using driver_t = verilator_driver<Vdc_fifo>;
+#endif
 using namespace std::chrono_literals;
-class dc_fifo_test : public verilator_driver<Vdc_fifo> {
+class dc_fifo_test : public driver_t {
 protected:
   ClockDriver wr_clockdriver, rd_clockdriver;
 
@@ -85,7 +119,7 @@ public:
   }
 
   dc_fifo_test(int argc, char **argv)
-      : verilator_driver(argc, argv),
+      : driver_t(argc, argv),
         wr_clockdriver(
             ClockDriver([&](uint8_t clk) { dut->wr_clk = clk; }, 10ns)),
         rd_clockdriver(

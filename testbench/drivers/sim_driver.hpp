@@ -18,17 +18,17 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  **/
 
-#ifndef VERILATOR_DRIVER_HPP
-#define VERILATOR_DRIVER_HPP
-#include "verilated.h"
+#ifndef SIM_DRIVER_HPP
+#define SIM_DRIVER_HPP
 #include <chrono>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <ratio>
 #include <stdexcept>
+#include <string>
 #include <sys/types.h>
 #include <vector>
-#include <verilated_fst_c.h>
 
 #define debug(a)                                                               \
   printf("%s:%d %s = %lld\n", __FILE__, __LINE__, #a, (long long)(a))
@@ -123,93 +123,47 @@ public:
     }
   }
 };
-template <typename dut_t> class verilator_driver {
-  using duration_t = ClockDriver::duration_t;
-  std::vector<std::reference_wrapper<ClockDriver>> m_clocks;
 
-  VerilatedContext *m_context;
-  VerilatedFstC *m_trace;
-  duration_t sim_timeout;
-
+class sim_driver {
 protected:
-  dut_t *dut;
+  using duration_t = ClockDriver::duration_t;
+  std::unordered_map<std::string, std::string> cmd_line_args;
+  std::vector<std::reference_wrapper<ClockDriver>> m_clocks;
+  /**
+   * \brief Parse the command line arguments of form key=value, stor as
+   *unordered_map member variable cmd_line_args \returns the last arg as the
+   *waveform file
+   **/
+  std::string parse_cmd_line_args(int argc, char **argv) {
+    std::string waveform_file = "";
+    for (int i = 1; i < argc; ++i) {
+      std::string arg(argv[i]);
+      if (arg[0] == '+') {
+        // ignore arguments that start with +
+        break;
+      }
+      auto eq_index = arg.find("=");
+      if (eq_index != std::string::npos) {
+        auto key = arg.substr(0, eq_index);
+        auto value = arg.substr(eq_index, std::string::npos);
+        cmd_line_args[key] = value;
+      } else {
+        waveform_file = arg;
+      }
+    }
+    return waveform_file;
+  }
+  duration_t sim_timeout;
   /*set timout relative to NOW */
   void set_sim_timeout(duration_t timeout) {
     sim_timeout = get_now() + timeout;
   }
-  verilator_driver(int argc, char **argv) {
-    char *waveform_file = NULL;
-    for (int a = 1; a < argc; a++) {
-      char *idx = strstr(argv[a], "+verilator");
-      if (idx == NULL) {
-        // if +verilator not in arg, grab last arg and use it as waveform file
-        waveform_file = argv[a];
-      }
-    }
-    m_context = new VerilatedContext;
-    m_context->commandArgs(argc, argv);
-    if (waveform_file) {
-      m_context->traceEverOn(true);
-    }
-
-    dut = new dut_t(m_context);
-
-    m_context->timeunit(12);
-    m_context->timeprecision(12);
-
-    if (waveform_file) {
-      m_trace = new VerilatedFstC;
-      dut->trace(m_trace, 99);
-      m_trace->open(waveform_file);
-    } else {
-      m_trace = NULL;
-    }
-    sim_timeout = std::chrono::milliseconds(10);
-  }
-  ~verilator_driver() {
-    delete m_trace;
-    delete dut;
-    delete m_context;
-  }
+  sim_driver() { sim_timeout = std::chrono::milliseconds(10); }
+  ~sim_driver() {}
   void add_clock(ClockDriver &cd) { m_clocks.push_back(cd); }
-  duration_t get_now() { return duration_t(m_context->time()); }
-  duration_t update() {
-    dut->eval();
-    if (m_trace) {
-      m_trace->dump(m_context->time());
-    }
-    duration_t start = get_now();
-    duration_t min_update = duration_t::max();
-    for (auto &cd : m_clocks) {
-      auto &c = cd.get();
-      auto x = c.next_update();
-      if (x < min_update)
-        min_update = x;
-    }
-    m_context->time(min_update.count());
+  virtual duration_t get_now() = 0;
+  virtual duration_t update() = 0;
 
-    duration_t now = get_now();
-
-    for (auto &cd : m_clocks) {
-      auto &c = cd.get();
-      if (c.next_update() == now) {
-        c.update(now);
-      }
-    }
-    dut->eval();
-    for (auto &cd : m_clocks) {
-      auto &c = cd.get();
-      if (c.last_update() == now) {
-        c.exec_callbacks();
-      }
-    }
-
-    if (sim_timeout != std::chrono::milliseconds(0) && now >= sim_timeout) {
-      throw std::runtime_error("Simulation timed out\n");
-    }
-
-    return get_now() - start;
-  }
   duration_t run(duration_t run_time) {
     duration_t ran_time = update();
     while (ran_time < run_time) {
@@ -229,4 +183,4 @@ protected:
   }
 };
 
-#endif // VERILATOR_DRIVER_HPP
+#endif // SIM_DRIVER_HPP
