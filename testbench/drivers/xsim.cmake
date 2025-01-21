@@ -34,27 +34,23 @@ function(add_xsim_library name)
   else()
     set(VERILOG_CMD true)
   endif()
+  add_library(${name} INTERFACE)
   add_custom_command(OUTPUT lib${name}_xsim.so
     DEPENDS ${XSIMtest_VERILOG_SOURCES} ${XSIMtest_SV_SOURCES}
     COMMAND ${VERILOG_CMD}
     COMMAND ${SV_CMD}
     COMMAND ${XELAB} work_${XSIMtest_TOPLEVEL}.${XSIMtest_TOPLEVEL} ${XSIMtest_ELAB_ARGS} -dll -s ${XSIMtest_TOPLEVEL} -debug wave
     COMMAND cmake -E create_symlink xsimk.so xsim.dir/${XSIMtest_TOPLEVEL}/lib${name}_xsim.so)
-  add_custom_target(${name}
-    DEPENDS  lib${name}_xsim.so
+  add_custom_target(${name}_cst_tgt
+    DEPENDS lib${name}_xsim.so)
+  target_include_directories(${name} INTERFACE ${VIVADO_BIN_DIR}/../data/xsim/include/)
+  target_link_directories(${name} INTERFACE ${VIVADO_BIN_DIR}/../lib/lnx64.o  ${CMAKE_CURRENT_BINARY_DIR}/xsim.dir/${XSIMtest_TOPLEVEL})
+  target_link_libraries(${name} INTERFACE xv_simulator_kernel ${name}_xsim)
+  target_link_options(${name} INTERFACE -Wl,--disable-new-dtags)
+  target_include_directories(${name} INTERFACE ${CMAKE_CURRENT_FUNCTION_LIST_DIR})
+  add_dependencies(${name}
+    ${name}_cst_tgt   
   )
-  define_property(TARGET PROPERTY XSIM_DIR)
-  set_property(TARGET ${name} PROPERTY XSIM_DIR ${CMAKE_CURRENT_BINARY_DIR}/xsim.dir/${XSIMtest_TOPLEVEL})
-endfunction()
-function(target_link_xsim_library target library_name)
-  add_dependencies(${target} ${library_name})
-  get_target_property(xsim_dir ${library_name} XSIM_DIR)
-  set_property(TARGET ${target} PROPERTY CXX_STANDARD 20)
-  target_include_directories(${target} PUBLIC ${VIVADO_BIN_DIR}/../data/xsim/include/)
-  target_link_directories(${target} PUBLIC ${VIVADO_BIN_DIR}/../lib/lnx64.o  ${xsim_dir}/)
-  target_link_libraries(${target} PUBLIC xv_simulator_kernel ${library_name}_xsim)
-  target_link_options(${target} PUBLIC -Wl,--disable-new-dtags)
-  target_include_directories(${target} PUBLIC ${CMAKE_CURRENT_FUNCTION_LIST_DIR})
 endfunction()
 
 file(GENERATE OUTPUT ${CMAKE_BINARY_DIR}/open_wave
