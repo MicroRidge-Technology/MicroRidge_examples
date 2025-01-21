@@ -53,7 +53,7 @@ function(add_xsim_library name)
   )
 endfunction()
 
-file(GENERATE OUTPUT ${CMAKE_BINARY_DIR}/open_wave
+file(GENERATE OUTPUT ${CMAKE_BINARY_DIR}/open_wdb
     CONTENT "#!/bin/sh
 #\\
 ${VIVADO_BIN} -source $0 -tclargs $@
