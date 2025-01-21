@@ -15,7 +15,7 @@ env:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  tests:
+  test-verilator:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/microridge-technology/verilator:v5.018
@@ -31,11 +31,18 @@ jobs:
           which ninja
           which verilator
       - name: configure builds
-        run:  mkdir build && cd build && cmake -G Ninja ../testbench
+        run:  mkdir build && cd build && cmake -G Ninja ../testbench -DSKIP_XSIM=Y
       - name: build
         run: ninja -C build
       - name: run tests
         run: cd build;ctest --output-on-failure
+  test-xsim:
+    runs-on: [self-hosted,Vivado]
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          mkdir build && cd build && cmake -G Ninja ../testbench -DSKIP_VERILATOR=Y
+
   vivado-builds:
     runs-on: [self-hosted,Vivado]
     strategy:
