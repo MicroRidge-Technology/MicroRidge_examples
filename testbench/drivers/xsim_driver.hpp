@@ -21,10 +21,23 @@
 #ifndef XSIM_DRIVER_HPP
 #define XSIM_DRIVER_HPP
 #include "sim_driver.hpp"
+#include <cstdint>
 #include <filesystem>
+#include <type_traits>
 #include <xsi.h>
 
-template <typename T, int WIDTH = 8 * sizeof(T)> class sim_port {
+template <int WIDTH> class sim_port {
+  // create unsigne type at least WIDTH bits wide
+  using T = typename std::conditional<
+      WIDTH <= 8, uint8_t,
+      typename std::conditional<
+          WIDTH <= 16, uint16_t,
+          typename std::conditional<
+              WIDTH <= 32, uint32_t,
+              typename std::conditional<
+                  WIDTH <= 64, uint64_t,
+                  typename std::conditional<WIDTH <= 128, __uint128_t, void>::
+                      type>::type>::type>::type>::type;
   xsiHandle xsi_handle;
   int port_num;
   std::string name;
@@ -91,13 +104,13 @@ protected:
       info.wdbFileName = NULL;
     }
 
-    auto arg0_dir = std::filesystem::absolute(std::filesystem::path(argv[0]))
-                        .remove_filename();
     auto saved_cwd = std::filesystem::current_path();
-    std::filesystem::current_path(arg0_dir);
+    printf("dut_t::get_sim_dir() = %s\n", dut_t::get_sim_dir().c_str());
+    std::filesystem::current_path(dut_t::get_sim_dir());
+    printf("current_dir = %s\n", std::filesystem::current_path().c_str());
     xsi_handle = xsi_open(&info);
     std::filesystem::current_path(saved_cwd);
-
+    printf("current_dir = %s\n", std::filesystem::current_path().c_str());
     if (waveform_file != "") {
       xsi_trace_all(xsi_handle);
     }

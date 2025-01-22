@@ -40,16 +40,18 @@ function(add_xsim_library name)
     COMMAND ${VERILOG_CMD}
     COMMAND ${SV_CMD}
     COMMAND ${XELAB} work_${XSIMtest_TOPLEVEL}.${XSIMtest_TOPLEVEL} ${XSIMtest_ELAB_ARGS} -dll -s ${XSIMtest_TOPLEVEL} -debug wave
-    COMMAND cmake -E create_symlink xsimk.so xsim.dir/${XSIMtest_TOPLEVEL}/lib${name}_xsim.so)
+    COMMAND cmake -E create_symlink xsimk.so xsim.dir/${XSIMtest_TOPLEVEL}/lib${name}_xsim.so
+    COMMAND bash ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/xsim_header_gen.cpp ${VIVADO_BIN_DIR}/.. ${CMAKE_CURRENT_BINARY_DIR}/xsim.dir/${XSIMtest_TOPLEVEL} ${name}  xsim.dir/${XSIMtest_TOPLEVEL}/${name}.hpp
+    )
   add_custom_target(${name}_cst_tgt
     DEPENDS lib${name}_xsim.so)
-  target_include_directories(${name} INTERFACE ${VIVADO_BIN_DIR}/../data/xsim/include/)
+  target_include_directories(${name} INTERFACE ${VIVADO_BIN_DIR}/../data/xsim/include/ ${CMAKE_CURRENT_BINARY_DIR}/xsim.dir/${XSIMtest_TOPLEVEL})
   target_link_directories(${name} INTERFACE ${VIVADO_BIN_DIR}/../lib/lnx64.o  ${CMAKE_CURRENT_BINARY_DIR}/xsim.dir/${XSIMtest_TOPLEVEL})
   target_link_libraries(${name} INTERFACE xv_simulator_kernel ${name}_xsim)
   target_link_options(${name} INTERFACE -Wl,--disable-new-dtags)
   target_include_directories(${name} INTERFACE ${CMAKE_CURRENT_FUNCTION_LIST_DIR})
   add_dependencies(${name}
-    ${name}_cst_tgt   
+    ${name}_cst_tgt
   )
 endfunction()
 

@@ -13,11 +13,17 @@ function(create_test name )
       target_compile_options(${name} PRIVATE -Wall   -Werror)
       add_dependencies(${name} format_source)
       add_test(NAME ${name} COMMAND $<TARGET_FILE:${name}>)
+      set_target_properties( ${name}
+        PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
     endif()
   endif()
   if(DEFINED MRtest_XSIM_LIBRARY)
     if(NOT SKIP_XSIM)
       add_executable(${name}_xsim ${MRtest_CXX_SOURCES})
+      set_target_properties( ${name}_xsim
+        PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
       target_link_libraries(${name}_xsim PUBLIC  ${MRtest_XSIM_LIBRARY})
       target_compile_definitions(${name}_xsim PUBLIC -DUSE_XSIM=1)
       set_property(TARGET ${name}_xsim PROPERTY CXX_STANDARD 20)
@@ -26,7 +32,7 @@ function(create_test name )
       add_test(NAME ${name}_xsim COMMAND $<TARGET_FILE:${name}_xsim>)
     endif()
   endif()
-    
+
 endfunction()
 
 if(NOT SKIP_XSIM)
