@@ -105,12 +105,10 @@ protected:
     }
 
     auto saved_cwd = std::filesystem::current_path();
-    printf("dut_t::get_sim_dir() = %s\n", dut_t::get_sim_dir().c_str());
     std::filesystem::current_path(dut_t::get_sim_dir());
-    printf("current_dir = %s\n", std::filesystem::current_path().c_str());
     xsi_handle = xsi_open(&info);
     std::filesystem::current_path(saved_cwd);
-    printf("current_dir = %s\n", std::filesystem::current_path().c_str());
+
     if (waveform_file != "") {
       xsi_trace_all(xsi_handle);
     }
