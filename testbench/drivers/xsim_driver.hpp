@@ -90,8 +90,8 @@ protected:
     s_xsi_setup_info info = {0};
     info.logFileName = NULL;
 
-    // for some reason the xsim generated `xsi_open` must run from the directory
-    // of the executable for that reason we do some hackery here to save the
+    // for some reason the xsim generated `xsi_open` must run from the 2 directories
+    // up from the xsimk.so for that reason we do some hackery here to save the
     // current directory, jump to that directory then got back to the saved
     // directory. the waveform file needs to be transformed to a absolute path
     // to make this work
