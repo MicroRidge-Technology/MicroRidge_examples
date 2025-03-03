@@ -60,6 +60,7 @@ protected:
     sim_timeout = std::chrono::milliseconds(10);
   }
   ~verilator_driver() {
+    dut->final();
     delete m_trace;
     delete dut;
     delete m_context;
@@ -73,6 +74,9 @@ protected:
     }
     duration_t start = get_now();
     duration_t min_update = duration_t::max();
+    if (dut->eventsPending()) {
+      min_update = duration_t(dut->nextTimeSlot());
+    }
     for (auto &cd : m_clocks) {
       auto &c = cd.get();
       auto x = c.next_update();
