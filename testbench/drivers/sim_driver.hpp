@@ -85,7 +85,8 @@ public:
      * Constructor for floating point nanoseconds
      */
 
-    duration_t dur_period(int(period.count()) * 1000);
+    duration_t dur_period(int(period.count() * 1000));
+
     up_time = dur_period / 2;
     down_time = dur_period - up_time;
     clock_fun = fun;
