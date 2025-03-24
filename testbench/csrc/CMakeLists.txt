@@ -41,6 +41,7 @@ if(NOT SKIP_XSIM)
 endif()
 if(NOT SKIP_VERILATOR)
 add_verilator_library(dc_ram ../../rtl/dc_ram.sv)
+
 add_verilator_library(dc_fifo ../../rtl/dc_fifo.sv)
 verilate(dc_fifo SOURCES ../../rtl/dc_fifo.sv PREFIX Vdc_fifo_fwft TRACE_FST TRACE_STRUCT VERILATOR_ARGS -GFWFT=1'b1)
 verilate(dc_fifo SOURCES ../../rtl/dc_fifo.sv PREFIX Vdc_fifo_outreg TRACE_FST TRACE_STRUCT VERILATOR_ARGS -GOUT_REG=1'b1)

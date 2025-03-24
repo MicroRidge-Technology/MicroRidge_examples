@@ -23,7 +23,7 @@
 #include "sim_driver.hpp"
 #include "verilated.h"
 #include <verilated_fst_c.h>
-template <typename dut_t> class verilator_driver : sim_driver {
+template <typename dut_t> class verilator_driver : protected sim_driver {
   using duration_t = ClockDriver::duration_t;
 
   VerilatedContext *m_context;
@@ -65,7 +65,6 @@ protected:
     delete dut;
     delete m_context;
   }
-  void add_clock(ClockDriver &cd) { m_clocks.push_back(cd); }
   duration_t get_now() { return duration_t(m_context->time()); }
   duration_t update() {
     dut->eval();
@@ -78,8 +77,7 @@ protected:
       min_update = duration_t(dut->nextTimeSlot());
     }
     for (auto &cd : m_clocks) {
-      auto &c = cd.get();
-      auto x = c.next_update();
+      auto x = cd.next_update();
       if (x < min_update)
         min_update = x;
     }
@@ -88,16 +86,14 @@ protected:
     duration_t now = get_now();
 
     for (auto &cd : m_clocks) {
-      auto &c = cd.get();
-      if (c.next_update() == now) {
-        c.update(now);
+      if (cd.next_update() == now) {
+        cd.update(now);
       }
     }
     dut->eval();
     for (auto &cd : m_clocks) {
-      auto &c = cd.get();
-      if (c.last_update() == now) {
-        c.exec_callbacks();
+      if (cd.last_update() == now) {
+        cd.exec_callbacks();
       }
     }
 
@@ -112,16 +108,6 @@ protected:
     while (ran_time < run_time) {
       ran_time += update();
     }
-    return ran_time;
-  }
-
-  duration_t run_until_rising_edge(const ClockDriver &cd) {
-    duration_t ran_time(0);
-    do {
-      ran_time += update();
-    } while (!(get_now() == cd.last_update() &&
-               cd.get_upcoming_edge() == ClockDriver::edge_e::FALL_EDGE));
-
     return ran_time;
   }
 };

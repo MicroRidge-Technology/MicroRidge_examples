@@ -76,7 +76,7 @@ public:
 };
 #define sim_port_construct(name) name(handle, #name)
 
-template <typename dut_t> class xsim_driver : public sim_driver {
+template <typename dut_t> class xsim_driver : protected sim_driver {
   xsiHandle xsi_handle;
 
 protected:
@@ -117,7 +117,7 @@ protected:
     sim_timeout = std::chrono::milliseconds(10);
   }
   ~xsim_driver() { delete dut; }
-  void add_clock(ClockDriver &cd) { m_clocks.push_back(cd); }
+
   virtual duration_t get_now() final {
     return duration_t(xsi_get_time(xsi_handle));
   }
@@ -125,8 +125,7 @@ protected:
     duration_t start = get_now();
     duration_t min_update = duration_t::max();
     for (auto &cd : m_clocks) {
-      auto &c = cd.get();
-      auto x = c.next_update();
+      auto x = cd.next_update();
       if (x < min_update)
         min_update = x;
     }
@@ -135,15 +134,13 @@ protected:
     duration_t now = get_now();
 
     for (auto &cd : m_clocks) {
-      auto &c = cd.get();
-      if (c.next_update() == now) {
-        c.update(now);
+      if (cd.next_update() == now) {
+        cd.update(now);
       }
     }
     for (auto &cd : m_clocks) {
-      auto &c = cd.get();
-      if (c.last_update() == now) {
-        c.exec_callbacks();
+      if (cd.last_update() == now) {
+        cd.exec_callbacks();
       }
     }
 

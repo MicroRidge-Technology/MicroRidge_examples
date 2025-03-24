@@ -6,12 +6,10 @@
 using namespace std::chrono_literals;
 class dc_fifo_test : public verilator_driver<Vdc_fifo_fwft> {
 protected:
-  ClockDriver wr_clockdriver, rd_clockdriver;
-
 public:
   void tick_wr(int ticks = 1) {
     while (ticks--) {
-      run_until_rising_edge(wr_clockdriver);
+      run_until_rising_edge(dut->wr_clk);
     }
   }
   std::vector<uint16_t> read_data;
@@ -79,15 +77,10 @@ public:
     }
   }
 
-  dc_fifo_test(int argc, char **argv)
-      : verilator_driver(argc, argv),
-        wr_clockdriver(
-            ClockDriver([&](uint8_t clk) { dut->wr_clk = clk; }, 10ns)),
-        rd_clockdriver(
-            ClockDriver([&](uint8_t clk) { dut->rd_clk = clk; }, 3.333ns)) {
-    add_clock(wr_clockdriver);
-    add_clock(rd_clockdriver);
+  dc_fifo_test(int argc, char **argv) : verilator_driver(argc, argv) {
+    add_clock(dut->wr_clk, 10ns);
 
+    auto &rd_clockdriver = add_clock(dut->rd_clk, 3.333ns);
     rd_clockdriver.add_callback(
         [&](ClockDriver::edge_e e) { on_read_clock(e); });
 

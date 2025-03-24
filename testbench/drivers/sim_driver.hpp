@@ -129,7 +129,7 @@ class sim_driver {
 protected:
   using duration_t = ClockDriver::duration_t;
   std::unordered_map<std::string, std::string> cmd_line_args;
-  std::vector<std::reference_wrapper<ClockDriver>> m_clocks;
+  std::vector<ClockDriver> m_clocks;
   /**
    * \brief Parse the command line arguments of form key=value, stor as
    *unordered_map member variable cmd_line_args \returns the last arg as the
@@ -161,7 +161,13 @@ protected:
   }
   sim_driver() { sim_timeout = std::chrono::milliseconds(10); }
   ~sim_driver() {}
-  void add_clock(ClockDriver &cd) { m_clocks.push_back(cd); }
+  template <typename pin_t>
+  ClockDriver &add_clock(pin_t &clock_pin,
+                         std::chrono::duration<long double, std::nano> period) {
+    ClockDriver cd([&](uint8_t clk_val) { clock_pin = clk_val; }, period);
+    m_clocks.push_back(cd);
+    return m_clocks.back();
+  }
   virtual duration_t get_now() = 0;
   virtual duration_t update() = 0;
 
@@ -173,12 +179,14 @@ protected:
     return ran_time;
   }
 
-  duration_t run_until_rising_edge(const ClockDriver &cd) {
+  template <typename pin_t> duration_t run_until_rising_edge(pin_t &clock_pin) {
     duration_t ran_time(0);
-    do {
+    while (clock_pin != 0) {
       ran_time += update();
-    } while (!(get_now() == cd.last_update() &&
-               cd.get_upcoming_edge() == ClockDriver::edge_e::FALL_EDGE));
+    }
+    while (clock_pin != 1) {
+      ran_time += update();
+    }
 
     return ran_time;
   }

@@ -35,7 +35,7 @@ function(add_xsim_library name)
     set(VERILOG_CMD true)
   endif()
   add_library(${name} INTERFACE)
-  add_custom_command(OUTPUT lib${name}_xsim.so
+  add_custom_command(OUTPUT xsim.dir/${XSIMtest_TOPLEVEL}/lib${name}_xsim.so
     DEPENDS ${XSIMtest_VERILOG_SOURCES} ${XSIMtest_SV_SOURCES}
     COMMAND ${VERILOG_CMD}
     COMMAND ${SV_CMD}
@@ -44,7 +44,7 @@ function(add_xsim_library name)
     COMMAND bash ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/xsim_header_gen.cpp ${VIVADO_BIN_DIR}/.. ${CMAKE_CURRENT_BINARY_DIR}/xsim.dir/${XSIMtest_TOPLEVEL} ${name}  xsim.dir/${XSIMtest_TOPLEVEL}/${name}.hpp
     )
   add_custom_target(${name}_cst_tgt
-    DEPENDS lib${name}_xsim.so)
+    DEPENDS xsim.dir/${XSIMtest_TOPLEVEL}/lib${name}_xsim.so)
   target_include_directories(${name} INTERFACE ${VIVADO_BIN_DIR}/../data/xsim/include/ ${CMAKE_CURRENT_BINARY_DIR}/xsim.dir/${XSIMtest_TOPLEVEL})
   target_link_directories(${name} INTERFACE ${VIVADO_BIN_DIR}/../lib/lnx64.o  ${CMAKE_CURRENT_BINARY_DIR}/xsim.dir/${XSIMtest_TOPLEVEL})
   target_link_libraries(${name} INTERFACE xv_simulator_kernel ${name}_xsim)

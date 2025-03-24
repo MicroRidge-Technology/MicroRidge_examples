@@ -14,12 +14,12 @@ class dc_ram_test : public driver_t {
   ClockDriver cd_a, cd_b;
   void tick_a(int ticks = 1) {
     while (ticks--) {
-      run_until_rising_edge(cd_a);
+      run_until_rising_edge(dut->clk_a);
     }
   }
   void tick_b(int ticks = 1) {
     while (ticks--) {
-      run_until_rising_edge(cd_b);
+      run_until_rising_edge(dut->clk_b);
     }
   }
 
@@ -28,13 +28,13 @@ public:
       : driver_t(argc, argv),
         cd_a(ClockDriver([&](uint8_t clk) { dut->clk_a = clk; }, 15ns)),
         cd_b(ClockDriver([&](uint8_t clk) { dut->clk_b = clk; }, 10ns)) {
-    add_clock(cd_a);
-    add_clock(cd_b);
+    add_clock(dut->clk_a, 15ns);
+    add_clock(dut->clk_b, 10ns);
     dut->we_a = 0;
     dut->we_b = 0;
     tick_a(10);
 
-    run_until_rising_edge(cd_a);
+    run_until_rising_edge(dut->clk_a);
 
     int ram_depth = (1 << 6);
 
