@@ -1,15 +1,4 @@
 
-#if 0
-VIV_DIR=$1
-SIM_DIR=$2
-SIM_LIB=$3
-exec_file=$(mktemp -p .)
-c++  -Wl,--disable-new-dtags  $0 -o $exec_file -I$VIV_DIR/data/xsim/include -L$VIV_DIR/lib/lnx64.o   -L$SIM_DIR -Wl,-rpath,$VIV_DIR/lib/lnx64.o:$SIM_DIR  -lxv_simulator_kernel  -l${SIM_LIB}_xsim
-$exec_file $4 ${SIM_LIB}
-ret=$?
-rm $exec_file
-exit $ret
-#endif
 
 #include <stdio.h>
 #include <xsi.h>

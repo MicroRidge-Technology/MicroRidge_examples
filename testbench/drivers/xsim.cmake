@@ -36,12 +36,18 @@ function(add_xsim_library name)
   endif()
   add_library(${name} INTERFACE)
   add_custom_command(OUTPUT xsim.dir/${XSIMtest_TOPLEVEL}/lib${name}_xsim.so
-    DEPENDS ${XSIMtest_VERILOG_SOURCES} ${XSIMtest_SV_SOURCES}
+    DEPENDS ${XSIMtest_VERILOG_SOURCES} ${XSIMtest_SV_SOURCES} ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/xsim_header_gen.cpp
     COMMAND ${VERILOG_CMD}
     COMMAND ${SV_CMD}
     COMMAND ${XELAB} work_${XSIMtest_TOPLEVEL}.${XSIMtest_TOPLEVEL} ${XSIMtest_ELAB_ARGS} -dll -s ${XSIMtest_TOPLEVEL} -debug wave
     COMMAND cmake -E create_symlink xsimk.so xsim.dir/${XSIMtest_TOPLEVEL}/lib${name}_xsim.so
-    COMMAND bash ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/xsim_header_gen.cpp ${VIVADO_BIN_DIR}/.. ${CMAKE_CURRENT_BINARY_DIR}/xsim.dir/${XSIMtest_TOPLEVEL} ${name}  xsim.dir/${XSIMtest_TOPLEVEL}/${name}.hpp
+    COMMAND ${CMAKE_CXX_COMPILER}  -Wl,--disable-new-dtags ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/xsim_header_gen.cpp
+    -o xsim.dir/${XSIMtest_TOPLEVEL}/${XSIMtest_TOPLEVEL}_gen
+    -I${VIVADO_BIN_DIR}/../data/xsim/include -L${VIVADO_BIN_DIR}/../lib/lnx64.o
+    -L${CMAKE_CURRENT_BINARY_DIR}/xsim.dir/${XSIMtest_TOPLEVEL} -Wl,-rpath,${VIVADO_BIN_DIR}/../lib/lnx64.o:${CMAKE_CURRENT_BINARY_DIR}/xsim.dir/${XSIMtest_TOPLEVEL}
+    -lxv_simulator_kernel  -l${name}_xsim
+    COMMAND  xsim.dir/${XSIMtest_TOPLEVEL}/${XSIMtest_TOPLEVEL}_gen xsim.dir/${XSIMtest_TOPLEVEL}/${name}.hpp ${name}
+    COMMAND ${CMAKE_COMMAND} -E remove xsim.dir/${XSIMtest_TOPLEVEL}/${XSIMtest_TOPLEVEL}_gen
     )
   add_custom_target(${name}_cst_tgt
     DEPENDS xsim.dir/${XSIMtest_TOPLEVEL}/lib${name}_xsim.so)
