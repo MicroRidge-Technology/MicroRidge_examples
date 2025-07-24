@@ -28,14 +28,9 @@ Dual-port RAM with independent clock domains for each port, supporting simultane
 ├── rtl/                    # SystemVerilog source files
 │   ├── dc_fifo.sv         # Dual-clock FIFO implementation
 │   └── dc_ram.sv          # Dual-port RAM implementation
-├── testbench/             # C++ testbenches and drivers
-│   ├── csrc/              # Test source files
-│   └── drivers/           # Simulation driver abstractions
-├── targets/               # FPGA target configurations
-│   ├── xem8320_xvc/       # Opal Kelly XEM8320 PCIe board
-│   ├── zc702/             # Xilinx ZC702 evaluation board
-│   └── CycloneX_devkit/   # Intel Cyclone X development kit
-└── build/                 # Build artifacts (generated)
+└── testbench/             # C++ testbenches and drivers
+    ├── csrc/              # Test source files
+    └── drivers/           # Simulation driver abstractions
 ```
 
 ## Building and Testing
