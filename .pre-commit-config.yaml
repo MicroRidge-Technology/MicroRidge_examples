@@ -1,0 +1,26 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v3.2.0
+    hooks:
+    -   id: trailing-whitespace
+    -   id: end-of-file-fixer
+        exclude: '.*/component.xml|.*/xgui/.*.tcl|'
+    -   id: check-added-large-files
+        exclude: '.*/component.xml|.*.jpg|'
+        args: [--maxkb=25]
+    -   id: check-yaml
+        args: [--allow-multiple-documents]
+  - repo: https://github.com/pre-commit/mirrors-clang-format
+    rev: v16.0.6
+    hooks:
+      - id: clang-format
+        types_or: [c++, c]
+  - repo: local
+    hooks:
+      - id: verible-format
+        name: Verible verilog format
+        entry: python ./verilog-format.py
+        language: system
+        types_or: [verilog, system-verilog]
+        args: [--inplace]
+        exclude: 'ip/common/SizedFIFOL.v|N25Qxxx.v'

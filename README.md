@@ -19,7 +19,7 @@ Parametrizable dual-clock FIFO with configurable:
 - First-Word Fall-Through (FWFT) mode
 - Output register option
 
-### dc_ram.sv  
+### dc_ram.sv
 Dual-port RAM with independent clock domains for each port, supporting simultaneous read/write operations.
 
 ## Directory Structure

@@ -1,0 +1,15 @@
+name: pre-commit
+
+on:
+  push:
+    branches: "**"
+
+jobs:
+  pre-commit:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-python@v3
+    - name: "run verilog-format.py once to download the formatter"
+      run : python3 verilog-format.py || true
+    - uses: pre-commit/action@v3.0.0
