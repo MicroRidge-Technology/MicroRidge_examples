@@ -138,6 +138,7 @@ protected:
         cd.update(now);
       }
     }
+    xsi_run(xsi_handle, 0);
     for (auto &cd : m_clocks) {
       if (cd.last_update() == now) {
         cd.exec_callbacks();

@@ -15,7 +15,7 @@ find_program(XVLOG xvlog
 function(add_xsim_library name)
   cmake_parse_arguments(XSIMtest ""
     "TOPLEVEL"
-    "VERILOG_SOURCES;SV_SOURCES;ELAB_ARGS"
+    "VERILOG_SOURCES;SV_SOURCES;VLOG_ARGS;ELAB_ARGS"
     ${ARGN})
 
 
@@ -29,17 +29,14 @@ function(add_xsim_library name)
     set(SV_CMD true)
   endif()
 
-  if(DEFINED XSIMtest_VERILOG_SOURCES)
-    set(VERILOG_CMD ${XVLOG} -work work_${XSIMtest_TOPLEVEL} ${XSIMtest_VLOG_ARGS} --incr  ${XSIMtest_VERILOG_SOURCES})
-  else()
-    set(VERILOG_CMD true)
-  endif()
+  set(VERILOG_CMD ${XVLOG} -work work_${XSIMtest_TOPLEVEL} ${XSIMtest_VLOG_ARGS} --incr  ${XSIMtest_VERILOG_SOURCES}  ${VIVADO_BIN_DIR}/../data/verilog/src/glbl.v)
+
   add_library(${name} INTERFACE)
   add_custom_command(OUTPUT xsim.dir/${XSIMtest_TOPLEVEL}/lib${name}_xsim.so
     DEPENDS ${XSIMtest_VERILOG_SOURCES} ${XSIMtest_SV_SOURCES} ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/xsim_header_gen.cpp
     COMMAND ${VERILOG_CMD}
     COMMAND ${SV_CMD}
-    COMMAND ${XELAB} work_${XSIMtest_TOPLEVEL}.${XSIMtest_TOPLEVEL} ${XSIMtest_ELAB_ARGS} -dll -s ${XSIMtest_TOPLEVEL} -debug wave
+    COMMAND ${XELAB} work_${XSIMtest_TOPLEVEL}.${XSIMtest_TOPLEVEL}  work_${XSIMtest_TOPLEVEL}.glbl ${XSIMtest_ELAB_ARGS} -dll -s ${XSIMtest_TOPLEVEL} -debug wave
     COMMAND cmake -E create_symlink xsimk.so xsim.dir/${XSIMtest_TOPLEVEL}/lib${name}_xsim.so
     COMMAND ${CMAKE_CXX_COMPILER}  -Wl,--disable-new-dtags ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/xsim_header_gen.cpp
     -o xsim.dir/${XSIMtest_TOPLEVEL}/${XSIMtest_TOPLEVEL}_gen
