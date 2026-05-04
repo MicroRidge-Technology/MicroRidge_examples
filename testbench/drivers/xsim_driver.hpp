@@ -116,12 +116,15 @@ protected:
 
     sim_timeout = std::chrono::milliseconds(10);
   }
-  ~xsim_driver() { delete dut; }
+  ~xsim_driver() {
+    shutdown();
+    delete dut;
+  }
 
   virtual duration_t get_now() final {
     return duration_t(xsi_get_time(xsi_handle));
   }
-  virtual duration_t update() final {
+  duration_t _update() final {
     duration_t start = get_now();
     duration_t min_update = duration_t::max();
     for (auto &cd : m_clocks) {

@@ -20,6 +20,7 @@
 
 #ifndef SIM_DRIVER_HPP
 #define SIM_DRIVER_HPP
+#include <atomic>
 #include <chrono>
 #include <cstdint>
 #include <functional>
@@ -28,6 +29,7 @@
 #include <stdexcept>
 #include <string>
 #include <sys/types.h>
+#include <thread>
 #include <vector>
 
 #define debug(a)                                                               \
@@ -159,8 +161,85 @@ protected:
   void set_sim_timeout(duration_t timeout) {
     sim_timeout = get_now() + timeout;
   }
-  sim_driver() { sim_timeout = std::chrono::milliseconds(10); }
-  ~sim_driver() {}
+
+private:
+  std::atomic<size_t> arrived{0};
+  std::atomic<size_t> generation{0};
+  std::atomic<bool> stopping{false};
+  std::thread::id main_tid;
+  std::vector<std::thread> threads;
+  duration_t m_last_update_duration{0};
+
+  bool update_no_threads() {
+    m_last_update_duration = _update();
+    return true;
+  }
+
+  bool update_with_threads() {
+    if (std::this_thread::get_id() == main_tid) {
+      const size_t n = threads.size();
+      while (true) {
+        size_t a = arrived.load(std::memory_order_acquire);
+        if (a == n)
+          break;
+        arrived.wait(a, std::memory_order_acquire);
+      }
+      m_last_update_duration = _update();
+      arrived.store(0, std::memory_order_relaxed);
+      generation.fetch_add(1, std::memory_order_release);
+      generation.notify_all();
+      return true;
+    } else {
+      if (stopping.load(std::memory_order_acquire))
+        return false;
+      auto my_gen = generation.load(std::memory_order_acquire);
+      auto a = arrived.fetch_add(1, std::memory_order_acq_rel) + 1;
+      if (a == threads.size())
+        arrived.notify_one();
+      while (true) {
+        size_t g = generation.load(std::memory_order_acquire);
+        if (g != my_gen)
+          break;
+        if (stopping.load(std::memory_order_acquire))
+          return false;
+        generation.wait(my_gen, std::memory_order_acquire);
+      }
+      return !stopping.load(std::memory_order_acquire);
+    }
+  }
+
+protected:
+  /// Per-step hook. Defaults to a direct _update() call (no synchronization
+  /// overhead). Swapped to a barrier-rendezvous version on the first
+  /// add_thread() call.
+  std::function<bool()> update;
+
+  sim_driver() : main_tid(std::this_thread::get_id()) {
+    sim_timeout = std::chrono::milliseconds(10);
+    update = [this] { return update_no_threads(); };
+  }
+  ~sim_driver() { shutdown(); }
+
+  /// Stop and join all child threads. Idempotent. Must be called as the
+  /// first line of every derived destructor (before deleting the DUT) so
+  /// child threads can't touch a freed DUT.
+  void shutdown() noexcept {
+    if (stopping.exchange(true, std::memory_order_acq_rel))
+      return;
+    // Bump generation so any child currently inside generation.wait() sees a
+    // value change and returns (atomic::wait would otherwise block forever
+    // because notify_all races with wait — notify is not queued for late
+    // arrivals).
+    generation.fetch_add(1, std::memory_order_release);
+    generation.notify_all();
+    arrived.notify_all();
+    for (auto &t : threads) {
+      if (t.joinable())
+        t.join();
+    }
+    threads.clear();
+  }
+
   template <typename pin_t>
   ClockDriver &add_clock(pin_t &clock_pin,
                          std::chrono::duration<long double, std::nano> period) {
@@ -168,27 +247,45 @@ protected:
     m_clocks.push_back(cd);
     return m_clocks.back();
   }
+
+  /// Spawn a child thread that participates in the per-step barrier. The
+  /// first call swaps update() over to the barrier-rendezvous version. All
+  /// add_thread calls must precede the first update() call.
+  void add_thread(std::function<void()> fn) {
+    if (threads.empty()) {
+      update = [this] { return update_with_threads(); };
+    }
+    threads.emplace_back(std::move(fn));
+  }
+
+  duration_t last_update_duration() const { return m_last_update_duration; }
+
   virtual duration_t get_now() = 0;
-  virtual duration_t update() = 0;
+  virtual duration_t _update() = 0;
 
   duration_t run(duration_t run_time) {
-    duration_t ran_time = update();
-    while (ran_time < run_time) {
-      ran_time += update();
+    duration_t total(0);
+    while (total < run_time) {
+      if (!update())
+        return total;
+      total += last_update_duration();
     }
-    return ran_time;
+    return total;
   }
 
   template <typename pin_t> duration_t run_until_rising_edge(pin_t &clock_pin) {
-    duration_t ran_time(0);
+    duration_t total(0);
     while (clock_pin != 0) {
-      ran_time += update();
+      if (!update())
+        return total;
+      total += last_update_duration();
     }
     while (clock_pin != 1) {
-      ran_time += update();
+      if (!update())
+        return total;
+      total += last_update_duration();
     }
-
-    return ran_time;
+    return total;
   }
 };
 

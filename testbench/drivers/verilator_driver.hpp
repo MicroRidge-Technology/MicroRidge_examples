@@ -60,13 +60,14 @@ protected:
     sim_timeout = std::chrono::milliseconds(10);
   }
   ~verilator_driver() {
+    shutdown();
     dut->final();
     delete m_trace;
     delete dut;
     delete m_context;
   }
   duration_t get_now() { return duration_t(m_context->time()); }
-  duration_t update() {
+  duration_t _update() {
     dut->eval();
     if (m_trace) {
       m_trace->dump(m_context->time());
@@ -102,13 +103,6 @@ protected:
     }
 
     return get_now() - start;
-  }
-  duration_t run(duration_t run_time) {
-    duration_t ran_time = update();
-    while (ran_time < run_time) {
-      ran_time += update();
-    }
-    return ran_time;
   }
 };
 

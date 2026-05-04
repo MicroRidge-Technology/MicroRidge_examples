@@ -14,15 +14,6 @@ public:
   }
   std::vector<uint16_t> read_data;
   double read_prob;
-  void on_read_clock(ClockDriver::edge_e) {
-    dut->rd_read = 0;
-    if (!dut->rd_empty) {
-      if (rand() / double(RAND_MAX) < read_prob) {
-        read_data.push_back(dut->rd_dout);
-        dut->rd_read = 1;
-      }
-    }
-  }
 
   void do_reset() {
     dut->rd_rstn = 0;
@@ -79,10 +70,26 @@ public:
 
   dc_fifo_test(int argc, char **argv) : verilator_driver(argc, argv) {
     add_clock(dut->wr_clk, 10ns);
+    add_clock(dut->rd_clk, 3.333ns);
 
-    auto &rd_clockdriver = add_clock(dut->rd_clk, 3.333ns);
-    rd_clockdriver.add_callback(
-        [&](ClockDriver::edge_e e) { on_read_clock(e); });
+    add_thread([this] {
+      if (!update())
+        return;
+      uint8_t prev_clk = dut->rd_clk;
+      while (update()) {
+        uint8_t now_clk = dut->rd_clk;
+        if (!prev_clk && now_clk) {
+          dut->rd_read = 0;
+          if (!dut->rd_empty) {
+            if (rand() / double(RAND_MAX) < read_prob) {
+              read_data.push_back(dut->rd_dout);
+              dut->rd_read = 1;
+            }
+          }
+        }
+        prev_clk = now_clk;
+      }
+    });
 
     dut->rd_read = 0;
     dut->wr_write = 0;

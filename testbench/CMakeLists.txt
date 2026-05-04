@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.22)
 
 project(MicroRidge_examples)
 
+find_package(Threads REQUIRED)
+
 set(SKIP_XSIM N CACHE BOOL "Skip Xsim test (Used when vivado not available)")
 set(SKIP_VERILATOR N CACHE BOOL "Skip verilator test (Used when verilator not available)")
 if(NOT ${SKIP_VERILATOR})
