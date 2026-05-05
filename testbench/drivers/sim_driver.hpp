@@ -173,16 +173,15 @@ private:
   std::atomic<bool> stopping{false};
   std::thread::id main_tid;
   std::vector<std::thread> threads;
-  duration_t m_last_update_duration{0};
 
   static constexpr uint64_t ARRIVED_MASK = 0xFFFFFFFFULL;
   static constexpr uint64_t N_ACTIVE_INC = 1ULL << 32;
   static uint32_t arrived_of(uint64_t s) { return uint32_t(s); }
   static uint32_t n_active_of(uint64_t s) { return uint32_t(s >> 32); }
 
-  void update_no_threads() { m_last_update_duration = _update(); }
+  duration_t update_no_threads() { return _update(); }
 
-  void update_with_threads() {
+  duration_t update_with_threads() {
     if (std::this_thread::get_id() == main_tid) {
       while (true) {
         uint64_t s = bar.load(std::memory_order_acquire);
@@ -190,7 +189,7 @@ private:
           break;
         bar.wait(s, std::memory_order_acquire);
       }
-      m_last_update_duration = _update();
+      duration_t d = _update();
       // Clear the arrived (low) half while preserving n_active (high half).
       // CAS loop because wrappers may concurrently decrement n_active.
       uint64_t old = bar.load(std::memory_order_relaxed);
@@ -200,6 +199,7 @@ private:
       }
       generation.fetch_add(1, std::memory_order_release);
       generation.notify_all();
+      return d;
     } else {
       if (stopping.load(std::memory_order_acquire))
         throw thread_stop{};
@@ -216,6 +216,7 @@ private:
       }
       if (stopping.load(std::memory_order_acquire))
         throw thread_stop{};
+      return duration_t(0);
     }
   }
 
@@ -230,11 +231,12 @@ protected:
   /// Per-step hook. Defaults to a direct _update() call (no synchronization
   /// overhead). Swapped to a barrier-rendezvous version on the first
   /// add_thread() call. Throws thread_stop from a child thread on shutdown.
-  std::function<void()> update;
+  /// Returns the sim-time duration consumed by the step (0 in child threads).
+  std::function<duration_t()> update;
 
   sim_driver() : main_tid(std::this_thread::get_id()) {
     sim_timeout = std::chrono::milliseconds(10);
-    update = [this] { update_no_threads(); };
+    update = [this] { return update_no_threads(); };
   }
   ~sim_driver() { shutdown(); }
 
@@ -276,7 +278,7 @@ protected:
   void add_thread(std::function<void()> fn) {
     uint64_t old = bar.fetch_add(N_ACTIVE_INC, std::memory_order_acq_rel);
     if (n_active_of(old) == 0) {
-      update = [this] { update_with_threads(); };
+      update = [this] { return update_with_threads(); };
     }
     threads.emplace_back([this, fn = std::move(fn)] {
       try {
@@ -288,8 +290,6 @@ protected:
     });
   }
 
-  duration_t last_update_duration() const { return m_last_update_duration; }
-
   /// True until shutdown() is called. Use from child-thread loops to break
   /// out cleanly when the driver is being destroyed.
   bool is_running() const { return !stopping.load(std::memory_order_acquire); }
@@ -300,8 +300,7 @@ protected:
   duration_t run(duration_t run_time) {
     duration_t total(0);
     while (total < run_time) {
-      update();
-      total += last_update_duration();
+      total += update();
     }
     return total;
   }
@@ -309,12 +308,10 @@ protected:
   template <typename pin_t> duration_t run_until_rising_edge(pin_t &clock_pin) {
     duration_t total(0);
     while (clock_pin != 0) {
-      update();
-      total += last_update_duration();
+      total += update();
     }
     while (clock_pin != 1) {
-      update();
-      total += last_update_duration();
+      total += update();
     }
     return total;
   }
