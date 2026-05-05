@@ -163,60 +163,78 @@ protected:
   }
 
 private:
-  std::atomic<size_t> arrived{0};
+  // Packed barrier state: low 32 bits = arrived count, high 32 bits =
+  // n_active. Combined into one atomic so main can wait on both halves at
+  // once — any change to either half wakes the wait. This eliminates the
+  // need for a "phantom arrival" trick and ensures main always waits for
+  // every alive child to actually arrive each round.
+  std::atomic<uint64_t> bar{0};
   std::atomic<size_t> generation{0};
   std::atomic<bool> stopping{false};
   std::thread::id main_tid;
   std::vector<std::thread> threads;
   duration_t m_last_update_duration{0};
 
-  bool update_no_threads() {
-    m_last_update_duration = _update();
-    return true;
-  }
+  static constexpr uint64_t ARRIVED_MASK = 0xFFFFFFFFULL;
+  static constexpr uint64_t N_ACTIVE_INC = 1ULL << 32;
+  static uint32_t arrived_of(uint64_t s) { return uint32_t(s); }
+  static uint32_t n_active_of(uint64_t s) { return uint32_t(s >> 32); }
 
-  bool update_with_threads() {
+  void update_no_threads() { m_last_update_duration = _update(); }
+
+  void update_with_threads() {
     if (std::this_thread::get_id() == main_tid) {
-      const size_t n = threads.size();
       while (true) {
-        size_t a = arrived.load(std::memory_order_acquire);
-        if (a == n)
+        uint64_t s = bar.load(std::memory_order_acquire);
+        if (arrived_of(s) >= n_active_of(s))
           break;
-        arrived.wait(a, std::memory_order_acquire);
+        bar.wait(s, std::memory_order_acquire);
       }
       m_last_update_duration = _update();
-      arrived.store(0, std::memory_order_relaxed);
+      // Clear the arrived (low) half while preserving n_active (high half).
+      // CAS loop because wrappers may concurrently decrement n_active.
+      uint64_t old = bar.load(std::memory_order_relaxed);
+      while (!bar.compare_exchange_weak(old, old & ~ARRIVED_MASK,
+                                        std::memory_order_release,
+                                        std::memory_order_relaxed)) {
+      }
       generation.fetch_add(1, std::memory_order_release);
       generation.notify_all();
-      return true;
     } else {
       if (stopping.load(std::memory_order_acquire))
-        return false;
+        throw thread_stop{};
       auto my_gen = generation.load(std::memory_order_acquire);
-      auto a = arrived.fetch_add(1, std::memory_order_acq_rel) + 1;
-      if (a == threads.size())
-        arrived.notify_one();
+      bar.fetch_add(1, std::memory_order_acq_rel);
+      bar.notify_one();
       while (true) {
         size_t g = generation.load(std::memory_order_acquire);
         if (g != my_gen)
           break;
         if (stopping.load(std::memory_order_acquire))
-          return false;
+          throw thread_stop{};
         generation.wait(my_gen, std::memory_order_acquire);
       }
-      return !stopping.load(std::memory_order_acquire);
+      if (stopping.load(std::memory_order_acquire))
+        throw thread_stop{};
     }
   }
+
+public:
+  /// Sentinel exception thrown out of update() (and helpers like run() and
+  /// run_until_rising_edge()) when the driver is shutting down. add_thread()
+  /// installs a wrapper that catches it; child code may also catch it
+  /// explicitly if cleanup is needed before unwinding.
+  struct thread_stop {};
 
 protected:
   /// Per-step hook. Defaults to a direct _update() call (no synchronization
   /// overhead). Swapped to a barrier-rendezvous version on the first
-  /// add_thread() call.
-  std::function<bool()> update;
+  /// add_thread() call. Throws thread_stop from a child thread on shutdown.
+  std::function<void()> update;
 
   sim_driver() : main_tid(std::this_thread::get_id()) {
     sim_timeout = std::chrono::milliseconds(10);
-    update = [this] { return update_no_threads(); };
+    update = [this] { update_no_threads(); };
   }
   ~sim_driver() { shutdown(); }
 
@@ -232,7 +250,7 @@ protected:
     // arrivals).
     generation.fetch_add(1, std::memory_order_release);
     generation.notify_all();
-    arrived.notify_all();
+    bar.notify_all();
     for (auto &t : threads) {
       if (t.joinable())
         t.join();
@@ -250,15 +268,31 @@ protected:
 
   /// Spawn a child thread that participates in the per-step barrier. The
   /// first call swaps update() over to the barrier-rendezvous version. All
-  /// add_thread calls must precede the first update() call.
+  /// add_thread calls must precede the first update() call. The thread
+  /// function is wrapped to catch thread_stop, so child loops can be written
+  /// as bare infinite loops and unwind cleanly at shutdown. A thread may also
+  /// return early on its own — n_active is decremented and main is notified
+  /// so it doesn't deadlock waiting for an arrival that will never come.
   void add_thread(std::function<void()> fn) {
-    if (threads.empty()) {
-      update = [this] { return update_with_threads(); };
+    uint64_t old = bar.fetch_add(N_ACTIVE_INC, std::memory_order_acq_rel);
+    if (n_active_of(old) == 0) {
+      update = [this] { update_with_threads(); };
     }
-    threads.emplace_back(std::move(fn));
+    threads.emplace_back([this, fn = std::move(fn)] {
+      try {
+        fn();
+      } catch (thread_stop &) {
+      }
+      bar.fetch_sub(N_ACTIVE_INC, std::memory_order_acq_rel);
+      bar.notify_one();
+    });
   }
 
   duration_t last_update_duration() const { return m_last_update_duration; }
+
+  /// True until shutdown() is called. Use from child-thread loops to break
+  /// out cleanly when the driver is being destroyed.
+  bool is_running() const { return !stopping.load(std::memory_order_acquire); }
 
   virtual duration_t get_now() = 0;
   virtual duration_t _update() = 0;
@@ -266,8 +300,7 @@ protected:
   duration_t run(duration_t run_time) {
     duration_t total(0);
     while (total < run_time) {
-      if (!update())
-        return total;
+      update();
       total += last_update_duration();
     }
     return total;
@@ -276,13 +309,11 @@ protected:
   template <typename pin_t> duration_t run_until_rising_edge(pin_t &clock_pin) {
     duration_t total(0);
     while (clock_pin != 0) {
-      if (!update())
-        return total;
+      update();
       total += last_update_duration();
     }
     while (clock_pin != 1) {
-      if (!update())
-        return total;
+      update();
       total += last_update_duration();
     }
     return total;
