@@ -58,7 +58,7 @@ public:
     s_xsi_vlog_logicval vlog_val = {aval, bval};
     xsi_put_value(xsi_handle, port_num, &vlog_val);
   }
-  s_xsi_vlog_logicval get_val() {
+  s_xsi_vlog_logicval get_val() const {
     s_xsi_vlog_logicval vlog_val = {0, 0};
     xsi_get_value(xsi_handle, port_num, &vlog_val);
     return vlog_val;
@@ -68,7 +68,7 @@ public:
     set_val(setval & mask_val, 0);
     return setval;
   }
-  operator T() {
+  operator T() const {
     s_xsi_vlog_logicval v;
     v = get_val();
     return (T)(v.aVal & mask_val);
