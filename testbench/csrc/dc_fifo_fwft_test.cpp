@@ -73,21 +73,15 @@ public:
     add_clock(dut->rd_clk, 3.333ns);
 
     add_thread([this] {
-      if (!update())
-        return;
-      uint8_t prev_clk = dut->rd_clk;
-      while (update()) {
-        uint8_t now_clk = dut->rd_clk;
-        if (!prev_clk && now_clk) {
-          dut->rd_read = 0;
-          if (!dut->rd_empty) {
-            if (rand() / double(RAND_MAX) < read_prob) {
-              read_data.push_back(dut->rd_dout);
-              dut->rd_read = 1;
-            }
+      while (true) {
+        run_until_rising_edge(dut->rd_clk);
+        dut->rd_read = 0;
+        if (!dut->rd_empty) {
+          if (rand() / double(RAND_MAX) < read_prob) {
+            read_data.push_back(dut->rd_dout);
+            dut->rd_read = 1;
           }
         }
-        prev_clk = now_clk;
       }
     });
 
