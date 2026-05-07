@@ -18,7 +18,7 @@ jobs:
   test-verilator:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/microridge-technology/verilator:v5.018
+      image: ghcr.io/microridge-technology/verilator:v5.044
     steps:
       - uses: actions/checkout@v4
       - run: |
@@ -42,5 +42,3 @@ jobs:
       - uses: actions/checkout@v4
       - run: |
           mkdir build && cd build && cmake -G Ninja ../testbench -DSKIP_VERILATOR=Y
-
-
